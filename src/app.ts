@@ -4,7 +4,8 @@ import compression from "compression";
 import cors from "cors";
 import morgan from "morgan";
 import { limiter } from "./middlewares/rateLimiter";
-import { check, customRequest } from "./middlewares/check";
+import { Request, Response, NextFunction } from "express";
+import HealthRouters from "./routes/v1/health";
 
 export const app = express();
 
@@ -17,9 +18,14 @@ app
   .use(helmet())
   .use(limiter);
 
-app.get("/health", check, (req: customRequest, res) => {
-  res.status(200).json({
-    message: "Hello we are ready for sending response",
-    userId: req.userId,
+app.use("/api/v1", HealthRouters);
+
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+  const status = err.status || 500;
+  const message = err.message || "Server Error";
+  const errCode = err.code || "Error Code";
+  res.status(status).json({
+    message,
+    error: errCode,
   });
 });
