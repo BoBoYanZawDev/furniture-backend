@@ -13,6 +13,12 @@
 cp .env.example .env
 ```
 
+> **Dev:**
+```bash
+npx prisma migrate dev --name init
+```
+> migrate.
+
 ```bash
 npx prisma generate
 ```
