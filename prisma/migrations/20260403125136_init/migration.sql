@@ -1,16 +1,3 @@
-/*
-  Warnings:
-
-  - You are about to alter the column `title` on the `Post` table. The data in that column could be lost. The data in that column will be cast from `Text` to `VarChar(255)`.
-  - You are about to drop the `User` table. If the table is not empty, all the data it contains will be lost.
-  - Added the required column `body` to the `Post` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `categoryId` to the `Post` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `image` to the `Post` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `typeId` to the `Post` table without a default value. This is not possible if the table is not empty.
-  - Added the required column `updatedAt` to the `Post` table without a default value. This is not possible if the table is not empty.
-  - Made the column `content` on table `Post` required. This step will fail if there are existing NULL values in that column.
-
-*/
 -- CreateEnum
 CREATE TYPE "Role" AS ENUM ('USER', 'ADMIN', 'AUTHOR');
 
@@ -19,22 +6,6 @@ CREATE TYPE "Status" AS ENUM ('ACTIVE', 'INACTIVE', 'FREEZE');
 
 -- CreateEnum
 CREATE TYPE "OrderStatus" AS ENUM ('COMPLETE', 'PENDING', 'CANCEL');
-
--- DropForeignKey
-ALTER TABLE "Post" DROP CONSTRAINT "Post_authorId_fkey";
-
--- AlterTable
-ALTER TABLE "Post" ADD COLUMN     "body" TEXT NOT NULL,
-ADD COLUMN     "categoryId" INTEGER NOT NULL,
-ADD COLUMN     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-ADD COLUMN     "image" TEXT NOT NULL,
-ADD COLUMN     "typeId" INTEGER NOT NULL,
-ADD COLUMN     "updatedAt" TIMESTAMP(3) NOT NULL,
-ALTER COLUMN "title" SET DATA TYPE VARCHAR(255),
-ALTER COLUMN "content" SET NOT NULL;
-
--- DropTable
-DROP TABLE "User";
 
 -- CreateTable
 CREATE TABLE "Category" (
@@ -70,6 +41,23 @@ CREATE TABLE "users" (
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "users_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Post" (
+    "id" SERIAL NOT NULL,
+    "title" VARCHAR(255) NOT NULL,
+    "content" TEXT NOT NULL,
+    "body" TEXT NOT NULL,
+    "image" TEXT NOT NULL,
+    "authorId" INTEGER NOT NULL,
+    "categoryId" INTEGER NOT NULL,
+    "typeId" INTEGER NOT NULL,
+    "published" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Post_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
