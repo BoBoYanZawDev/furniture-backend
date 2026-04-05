@@ -153,7 +153,7 @@ model Otp {
   rememberToken String   @db.VarChar(255)
   verifiedToken String?  @db.VarChar(255)
   count         Int      @default(0) @db.SmallInt
-  error         Int      @default(0) @db.SmallInt
+  errorCount    Int      @default(0) @db.SmallInt
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 }
