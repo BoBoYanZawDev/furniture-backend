@@ -1,40 +1,45 @@
+import { Prisma } from "../src/generated/prisma/client";
 import { prisma } from "../src/lib/prisma";
+import * as bcrypt from "bcrypt";
+import { faker } from "@faker-js/faker";
+// const userData: Prisma.UserCreateInput[] = [
+//   {
+//     phone_no: "+1234567891",
+//     password: "",
+//     randToken: "randomtoken123",
+//   }
+// ];
+
+export function createRandomUser() {
+  return {
+    phone_no: faker.phone.number({style: "international"}),
+    password: "",
+    randToken: faker.internet.jwt()
+  };
+}
+
+export const userData = faker.helpers.multiple(createRandomUser, {
+  count: 5,
+});
 
 async function main() {
-  // Create a new user with a post
-  const user = await prisma.user.create({
-    data: {
-      name: "Jondoe",
-      email: "jondoe@prisma.io",
-      posts: {
-        create: {
-          title: "Hello World",
-          content: "This is my first post!",
-          published: true,
-        },
-      },
-    },
-    include: {
-      posts: true,
-    },
-  });
-  console.log("Created user:", user);
-
-  // Fetch all users with their posts
-  const allUsers = await prisma.user.findMany({
-    include: {
-      posts: true,
-    },
-  });
-  console.log("All users:", JSON.stringify(allUsers, null, 2));
+  console.log(`Start seeding ...`);
+  const salt = await bcrypt.genSalt(10);
+  const hashedPassword = await bcrypt.hash("password", salt);
+  for (const u of userData) {
+    u.password = hashedPassword;
+    const user = await prisma.user.create({
+      data: u,
+    });
+    console.log(`Created user with id: ${user.id}`);
+  }
 }
 
 main()
-  .then(async () => {
-    await prisma.$disconnect();
-  })
-  .catch(async (e) => {
+  .catch((e) => {
     console.error(e);
-    await prisma.$disconnect();
     process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
   });
