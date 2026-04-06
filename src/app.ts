@@ -5,10 +5,9 @@ import cors from "cors";
 import morgan from "morgan";
 import { limiter } from "./middlewares/rateLimiter";
 import { Request, Response, NextFunction } from "express";
-import HealthRouters from "./routes/v1/health";
-import WebRouters from "./routes/web/view";
-import * as errorController from "./controllers/web/ErrorController";
-
+// import WebRouters from "./routes/v1/web/view";
+// import * as errorController from "./controllers/web/ErrorController";
+import router from "./routes/v1";
 
 export const app = express();
 
@@ -26,10 +25,11 @@ app
 
 app.use(express.static("public"));
 
-app.use("/api/v1", HealthRouters);
-app.use(WebRouters);
+app.use(router);
 
-app.use(errorController.notFound);
+// for web routes
+// app.use(WebRouters);
+// app.use(errorController.notFound);
 
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   const status = err.status || 500;
