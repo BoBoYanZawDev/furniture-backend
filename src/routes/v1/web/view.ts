@@ -1,7 +1,7 @@
-import express from "express";
 import { about, home } from "../../../controllers/web/ViewController";
+import { createRouter } from "../../createRouter";
 
-const router = express.Router();
+export const router = createRouter();
 
 router.get("/home", home);
 router.get("/about", about);

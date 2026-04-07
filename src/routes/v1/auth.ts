@@ -1,4 +1,3 @@
-import express from "express";
 import {
   confirmPassword,
   login,
@@ -6,8 +5,9 @@ import {
   register,
   verifyOtp,
 } from "../../controllers/AuthController";
+import { createRouter } from "../createRouter";
 
-const router = express.Router();
+export const router = createRouter();
 
 router.post("/register", register);
 router.post("/verify-otp", verifyOtp);
