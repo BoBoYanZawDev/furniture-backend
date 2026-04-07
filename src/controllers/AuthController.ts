@@ -91,9 +91,30 @@ export const register = [
   },
 ];
 
-export const verifyOtp = (req: Request, res: Response, next: NextFunction) => {
-  res.status(200).json({ message: "OTP verified successfully" });
-};
+export const verifyOtp = [
+  body("phone","Invalid phone number")
+    .trim()
+    .notEmpty()
+    .matches("^[0-9]+$")
+    .isLength({ min: 5, max: 12 }),
+  body("otp","Invalid OTP")
+    .trim()
+    .notEmpty()
+    .matches("^[0-9]+$")
+    .isLength({ min: 6, max: 6 }),
+  body("token","Invalid Token").trim().notEmpty().escape(),
+  async (req: Request, res: Response, next: NextFunction) => {
+    const errors = validationResult(req).array({ onlyFirstError: true });
+    if (errors.length > 0) {
+      const error: any = new Error(errors[0]?.msg);
+      error.status = 400;
+      error.code = "VALIDATION_ERROR";
+      return next(error);
+    }
+
+    res.status(200).json({ message: "OTP verified successfully" });
+  },
+];
 export const confirmPassword = (
   req: Request,
   res: Response,
