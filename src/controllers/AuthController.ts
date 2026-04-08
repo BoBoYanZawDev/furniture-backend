@@ -6,10 +6,15 @@ import {
   getUserByPhone,
   updateOtp,
 } from "../services/authServices";
-import { checkOptErrorIfSameDate, checkUserExists } from "../utils/auth";
+import {
+  checkOptErrorIfSameDate,
+  checkOtpRow,
+  checkUserExists,
+} from "../utils/auth";
 import { generateOTP, generateToken } from "../utils/generate";
 import bcrypt from "bcrypt";
 import { error } from "node:console";
+import moment from "moment";
 
 export const register = [
   body("phone")
@@ -23,7 +28,7 @@ export const register = [
     if (errors.length > 0) {
       const error: any = new Error(errors[0]?.msg);
       error.status = 400;
-      error.code = "VALIDATION_ERROR";
+      error.code = "Error_Invalid";
       return next(error);
     }
 
@@ -92,17 +97,17 @@ export const register = [
 ];
 
 export const verifyOtp = [
-  body("phone","Invalid phone number")
+  body("phone", "Invalid phone number")
     .trim()
     .notEmpty()
     .matches("^[0-9]+$")
     .isLength({ min: 5, max: 12 }),
-  body("otp","Invalid OTP")
+  body("otp", "Invalid OTP")
     .trim()
     .notEmpty()
     .matches("^[0-9]+$")
     .isLength({ min: 6, max: 6 }),
-  body("token","Invalid Token").trim().notEmpty().escape(),
+  body("token", "Invalid Token").trim().notEmpty().escape(),
   async (req: Request, res: Response, next: NextFunction) => {
     const errors = validationResult(req).array({ onlyFirstError: true });
     if (errors.length > 0) {
@@ -112,9 +117,76 @@ export const verifyOtp = [
       return next(error);
     }
 
-    res.status(200).json({ message: "OTP verified successfully" });
+    const { phone, otp, token } = req.body;
+    const user = await getUserByPhone(phone);
+    checkUserExists(user);
+
+    const otpRow = await getOtpByPhone(phone);
+    checkOtpRow(otpRow);
+
+    const lastOtpReq = new Date(otpRow!.updatedAt).toLocaleDateString();
+    const now = new Date().toLocaleDateString();
+    const isSameDate = lastOtpReq === now;
+    checkOptErrorIfSameDate(isSameDate, otpRow!.errorCount);
+
+    let result;
+
+    if (otpRow!.rememberToken !== token) {
+      const otpData = {
+        errorCount: 5,
+      };
+      result = await updateOtp(otpRow!.id, otpData);
+      const error: any = new Error("Invalid OTP or token");
+      error.status = 400;
+      error.code = "ERROR_INVALID";
+      return next(error);
+    }
+
+    const isExpire = moment().diff(otpRow?.updatedAt, "minutes") > 2;
+    if (isExpire) {
+      const error: any = new Error("OTP is expired");
+      error.status = 403;
+      error.code = "ERROR_EXPIRED";
+      return next(error);
+    }
+    const isMatchOtp = bcrypt.compare(otp, otpRow!.otp);
+    if (!isMatchOtp) {
+      if (!isSameDate) {
+        const otpData = {
+          errorCount: 1,
+        };
+        result = await updateOtp(otpRow!.id, otpData);
+      } else {
+        // if otp is not first time today
+        const otpData = {
+          errorCount: {
+            increment: 1,
+          },
+        };
+        await updateOtp(otpRow!.id, otpData);
+      }
+      const error: any = new Error("OTP is incorrect");
+      error.status = 401;
+      error.code = "ERROR_INVLAID";
+      return next(error);
+    }
+    const verifyToken = generateToken();
+    const otpData = {
+      verifiedToken: verifyToken,
+      errorCount: 0,
+      count: 1,
+    };
+
+    result = await updateOtp(otpRow!.id, otpData);
+
+    res.status(200).json({
+      message: "OTP verified successfully",
+      phone: result.phone_no,
+      verifyToken: result.verifiedToken,
+    });
   },
 ];
+
 export const confirmPassword = (
   req: Request,
   res: Response,
@@ -122,6 +194,7 @@ export const confirmPassword = (
 ) => {
   res.status(200).json({ message: "Password confirmed successfully" });
 };
+
 export const login = (req: Request, res: Response, next: NextFunction) => {
   res.status(200).json({ message: "Login successful" });
 };
