@@ -2,9 +2,11 @@ import { Request, Response, NextFunction } from "express";
 import { body, check, validationResult } from "express-validator";
 import {
   createOtp,
+  createUser,
   getOtpByPhone,
   getUserByPhone,
   updateOtp,
+  updateUser,
 } from "../services/authServices";
 import {
   checkOptErrorIfSameDate,
@@ -15,6 +17,7 @@ import { generateOTP, generateToken } from "../utils/generate";
 import bcrypt from "bcrypt";
 import { error } from "node:console";
 import moment from "moment";
+import jwt from "jsonwebtoken";
 
 export const register = [
   body("phone")
@@ -135,7 +138,7 @@ export const verifyOtp = [
       const otpData = {
         errorCount: 5,
       };
-      result = await updateOtp(otpRow!.id, otpData);
+      await updateOtp(otpRow!.id, otpData);
       const error: any = new Error("Invalid OTP or token");
       error.status = 400;
       error.code = "ERROR_INVALID";
@@ -155,7 +158,7 @@ export const verifyOtp = [
         const otpData = {
           errorCount: 1,
         };
-        result = await updateOtp(otpRow!.id, otpData);
+        await updateOtp(otpRow!.id, otpData);
       } else {
         // if otp is not first time today
         const otpData = {
@@ -187,13 +190,113 @@ export const verifyOtp = [
   },
 ];
 
-export const confirmPassword = (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => {
-  res.status(200).json({ message: "Password confirmed successfully" });
-};
+export const confirmPassword = [
+  body("phone", "Invalid phone number")
+    .trim()
+    .notEmpty()
+    .matches("^[0-9]+$")
+    .isLength({ min: 5, max: 12 }),
+  body("password", "Password must be 8 digit")
+    .trim()
+    .notEmpty()
+    .matches("^[0-9]+$")
+    .isLength({ min: 8, max: 8 }),
+  body("token", "Invalid Token").trim().notEmpty().escape(),
+  async (req: Request, res: Response, next: NextFunction) => {
+    const errors = validationResult(req).array({ onlyFirstError: true });
+    if (errors.length > 0) {
+      const error: any = new Error(errors[0]?.msg);
+      error.status = 400;
+      error.code = "VALIDATION_ERROR";
+      return next(error);
+    }
+
+    const { phone, password, token } = req.body;
+
+    const user = await getUserByPhone(phone);
+    checkUserExists(user);
+
+    const otpRow = await getOtpByPhone(phone);
+    checkOtpRow(otpRow);
+
+    // otp error count is overlimit
+    if (otpRow?.errorCount === 5) {
+      const error: any = new Error("This request may be an attack");
+      error.status = 400;
+      error.code = "Error_badrequest";
+      return next(error);
+    }
+
+    if (otpRow?.verifiedToken != token) {
+      const otpData = {
+        errorCount: 5,
+      };
+      await updateOtp(otpRow!.id, otpData);
+      const error: any = new Error("Invalid Token");
+      error.status = 400;
+      error.code = "Error_Invalid";
+      return next(error);
+    }
+
+    // request is expire
+    const isExpired = moment().diff(otpRow?.updatedAt, "minutes") > 10;
+    if (isExpired) {
+      const error: any = new Error(
+        "Your request is expired. Please try again.",
+      );
+      error.status = 403;
+      error.code = "Error_Expired";
+      return next(error);
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashPassword = await bcrypt.hash(password, salt);
+    const randToken = "I Will replace refresh token soon.";
+    const userData = {
+      phone_no: phone,
+      password: hashPassword,
+      randToken,
+    };
+    const newUser = await createUser(userData);
+
+    const accessPayload = {
+      id: newUser.id,
+    };
+    const refreshPayload = {
+      id: newUser.id,
+      phone: newUser.phone_no,
+    };
+
+    const accessToken = jwt.sign(
+      accessPayload,
+      process.env.ACCESS_TOKEN_SECRET!,
+      {
+        expiresIn: 60 * 15,
+      },
+    );
+    const refreshToken = jwt.sign(
+      refreshPayload,
+      process.env.REFRESH_TOKEN_SECRET!,
+      {
+        expiresIn: 60 * 15,
+      },
+    );
+
+    const updateUserData = {
+      randToken: refreshToken,
+    };
+    await updateUser(newUser.id, updateUserData);
+
+    res
+      .status(201)
+      .json({
+        message: "Successfully created an account",
+        userId: newUser.id,
+        accessToken,
+        refreshToken,
+      });
+  },
+];
 
 export const login = (req: Request, res: Response, next: NextFunction) => {
   res.status(200).json({ message: "Login successful" });
