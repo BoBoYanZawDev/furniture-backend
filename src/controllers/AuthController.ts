@@ -20,6 +20,7 @@ import bcrypt from "bcrypt";
 import { error } from "node:console";
 import moment from "moment";
 import jwt from "jsonwebtoken";
+import { errorCode } from "../../config/errorCode";
 
 export const register = [
   body("phone")
@@ -33,7 +34,7 @@ export const register = [
     if (errors.length > 0) {
       const error: any = new Error(errors[0]?.msg);
       error.status = 400;
-      error.code = "Error_Invalid";
+      error.code = errorCode.invalid;
       return next(error);
     }
 
@@ -79,7 +80,7 @@ export const register = [
             "OTP is alowed only 3 times a day. Please try again tomorrow.",
           );
           error.status = 405;
-          error.code = "ERROR_OTP_LIMIT";
+          error.code = errorCode.overLimit;
           return next(error);
         } else {
           const otpData = {
@@ -118,7 +119,7 @@ export const verifyOtp = [
     if (errors.length > 0) {
       const error: any = new Error(errors[0]?.msg);
       error.status = 400;
-      error.code = "VALIDATION_ERROR";
+      error.code = errorCode.invalid;
       return next(error);
     }
 
@@ -143,7 +144,7 @@ export const verifyOtp = [
       await updateOtp(otpRow!.id, otpData);
       const error: any = new Error("Invalid OTP or token");
       error.status = 400;
-      error.code = "ERROR_INVALID";
+      error.code = errorCode.invalid;
       return next(error);
     }
 
@@ -151,7 +152,7 @@ export const verifyOtp = [
     if (isExpire) {
       const error: any = new Error("OTP is expired");
       error.status = 403;
-      error.code = "ERROR_EXPIRED";
+      error.code = errorCode.otpExpired;
       return next(error);
     }
     const isMatchOtp = bcrypt.compare(otp, otpRow!.otp);
@@ -172,7 +173,7 @@ export const verifyOtp = [
       }
       const error: any = new Error("OTP is incorrect");
       error.status = 401;
-      error.code = "ERROR_INVLAID";
+      error.code = errorCode.invalid;
       return next(error);
     }
     const verifyToken = generateToken();
@@ -209,7 +210,7 @@ export const confirmPassword = [
     if (errors.length > 0) {
       const error: any = new Error(errors[0]?.msg);
       error.status = 400;
-      error.code = "VALIDATION_ERROR";
+      error.code = errorCode.invalid;
       return next(error);
     }
 
@@ -225,7 +226,7 @@ export const confirmPassword = [
     if (otpRow?.errorCount === 5) {
       const error: any = new Error("This request may be an attack");
       error.status = 400;
-      error.code = "Error_badrequest";
+      error.code = errorCode.attack;
       return next(error);
     }
 
@@ -236,7 +237,7 @@ export const confirmPassword = [
       await updateOtp(otpRow!.id, otpData);
       const error: any = new Error("Invalid Token");
       error.status = 400;
-      error.code = "Error_Invalid";
+      error.code = errorCode.invalid;
       return next(error);
     }
 
@@ -247,7 +248,7 @@ export const confirmPassword = [
         "Your request is expired. Please try again.",
       );
       error.status = 403;
-      error.code = "Error_Expired";
+      error.code = errorCode.requestExpired;
       return next(error);
     }
 
@@ -326,7 +327,7 @@ export const login = [
     if (errors.length > 0) {
       const error: any = new Error(errors[0]?.msg);
       error.status = 400;
-      error.code = "VALIDATION_ERROR";
+      error.code = errorCode.invalid;
       return next(error);
     }
 
@@ -342,7 +343,7 @@ export const login = [
         "Your account is temporarily locked. Please contact us.",
       );
       error.status = 400;
-      error.code = "Error_Freeze";
+      error.code = errorCode.accountFreeze;
       return next(error);
     }
 
@@ -372,7 +373,7 @@ export const login = [
 
       const error: any = new Error("Password doesn't match.");
       error.status = 401;
-      error.code = "Error_Invalid";
+      error.code = errorCode.invalid;
       return next(error);
     }
 
@@ -435,7 +436,7 @@ export const logout = async (
   if (!refreshToken) {
     const error: any = new Error("You are not an authenticated user.");
     error.status = 401;
-    error.code = "Error_Unauthenticated";
+    error.code = errorCode.unauthenticated;
     return next(error);
   }
 
@@ -448,7 +449,7 @@ export const logout = async (
   } catch (err: any) {
     err.status = 401;
     err.message = "You are not an authenticated user.";
-    err.code = "Error_Unauthenticated";
+    err.code = errorCode.unauthenticated;
     return next(err);
   }
 
@@ -457,7 +458,7 @@ export const logout = async (
   if (user?.phone_no !== decoded.phone) {
     const error: any = new Error("You are not an authenticated user.");
     error.status = 401;
-    error.code = "Error_Unauthenticated";
+    error.code = errorCode.unauthenticated;
     return next(error);
   }
   const userData = {
@@ -466,8 +467,17 @@ export const logout = async (
 
   await updateUser(user!.id, userData);
 
-  res.clearCookie("accessToken");
-  res.clearCookie("refreshToken");
+  res.clearCookie("accessToken", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV == "production",
+    sameSite: process.env.NODE_ENV == "production" ? "none" : "strict",
+  });
+
+  res.clearCookie("refreshToken", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV == "production",
+    sameSite: process.env.NODE_ENV == "production" ? "none" : "strict",
+  });
 
   res.status(200).json({ message: "Logout successful,See You Soon." });
 };
