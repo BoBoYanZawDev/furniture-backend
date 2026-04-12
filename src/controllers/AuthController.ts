@@ -12,6 +12,7 @@ import {
   checkOptErrorIfSameDate,
   checkOtpRow,
   checkUserExists,
+  checkUserIfNotExists,
 } from "../utils/auth";
 import { generateOTP, generateToken } from "../utils/generate";
 import bcrypt from "bcrypt";
@@ -278,7 +279,7 @@ export const confirmPassword = [
       refreshPayload,
       process.env.REFRESH_TOKEN_SECRET!,
       {
-        expiresIn: 60 * 15,
+        expiresIn: "30d",
       },
     );
 
@@ -288,19 +289,141 @@ export const confirmPassword = [
     await updateUser(newUser.id, updateUserData);
 
     res
+      .cookie("accessToken", accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV == "production",
+        sameSite: process.env.NODE_ENV == "production" ? "none" : "strict",
+        maxAge: 15 * 60 * 1000, // 15 minutes
+      })
+      .cookie("refreshToken", refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV == "production",
+        sameSite: process.env.NODE_ENV == "production" ? "none" : "strict",
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 15 minutes
+      })
       .status(201)
       .json({
         message: "Successfully created an account",
         userId: newUser.id,
-        accessToken,
-        refreshToken,
       });
   },
 ];
 
-export const login = (req: Request, res: Response, next: NextFunction) => {
-  res.status(200).json({ message: "Login successful" });
-};
+export const login = [
+  body("phone", "Invalid phone number")
+    .trim()
+    .notEmpty()
+    .matches("^[0-9]+$")
+    .isLength({ min: 5, max: 12 }),
+  body("password", "Password must be 8 digit")
+    .trim()
+    .notEmpty()
+    .matches("^[0-9]+$")
+    .isLength({ min: 8, max: 8 }),
+  async (req: Request, res: Response, next: NextFunction) => {
+    const errors = validationResult(req).array({ onlyFirstError: true });
+    if (errors.length > 0) {
+      const error: any = new Error(errors[0]?.msg);
+      error.status = 400;
+      error.code = "VALIDATION_ERROR";
+      return next(error);
+    }
+
+    let { phone, password } = req.body;
+    if (phone.slice(0, 2) === "09") {
+      phone = phone.substring(2, phone.length);
+    }
+
+    const user = await getUserByPhone(phone);
+    checkUserIfNotExists(user);
+    if (user?.status == "FREEZE") {
+      const error: any = new Error(
+        "Your account is temporarily locked. Please contact us.",
+      );
+      error.status = 400;
+      error.code = "Error_Freeze";
+      return next(error);
+    }
+
+    const isMatchPassword = bcrypt.compare(password, user!.password);
+    if (!isMatchPassword) {
+      const lastRequest = new Date(user!.updatedAt).toLocaleDateString();
+      const isSameDate = lastRequest == new Date().toLocaleDateString();
+      let userData;
+      if (!isSameDate) {
+        userData = {
+          errorLoginCount: 1,
+        };
+      } else {
+        if (user!.errorLoginCount >= 2) {
+          userData = {
+            status: "FREEZE",
+          };
+        } else {
+          userData = {
+            errorLoginCount: {
+              increment: 1,
+            },
+          };
+        }
+      }
+      await updateUser(user!.id, userData);
+
+      const error: any = new Error("Password doesn't match.");
+      error.status = 401;
+      error.code = "Error_Invalid";
+      return next(error);
+    }
+
+    const accessPayload = {
+      id: user!.id,
+    };
+    const refreshPayload = {
+      id: user!.id,
+      phone: user!.phone_no,
+    };
+
+    const accessToken = jwt.sign(
+      accessPayload,
+      process.env.ACCESS_TOKEN_SECRET!,
+      {
+        expiresIn: 60 * 15,
+      },
+    );
+    const refreshToken = jwt.sign(
+      refreshPayload,
+      process.env.REFRESH_TOKEN_SECRET!,
+      {
+        expiresIn: "30d",
+      },
+    );
+
+    const updateUserData = {
+      errorLoginCount: 0,
+      randToken: refreshToken,
+    };
+    await updateUser(user!.id, updateUserData);
+
+    res
+      .cookie("accessToken", accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV == "production",
+        sameSite: process.env.NODE_ENV == "production" ? "none" : "strict",
+        maxAge: 15 * 60 * 1000, // 15 minutes
+      })
+      .cookie("refreshToken", refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV == "production",
+        sameSite: process.env.NODE_ENV == "production" ? "none" : "strict",
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 15 minutes
+      })
+      .status(201)
+      .json({
+        message: "Successfully Login",
+        userId: user!.id,
+      });
+  },
+];
 
 export const logout = (req: Request, res: Response, next: NextFunction) => {
   res.status(200).json({ message: "Logout successful" });
