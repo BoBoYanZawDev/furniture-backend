@@ -8,6 +8,7 @@ import { Request, Response, NextFunction } from "express";
 // import WebRouters from "./routes/v1/web/view";
 // import * as errorController from "./controllers/web/ErrorController";
 import router from "./routes/v1";
+import cookieParser from "cookie-parser";
 
 export const app = express();
 
@@ -18,6 +19,7 @@ app
   .use(morgan("dev"))
   .use(express.urlencoded({ extended: true }))
   .use(express.json())
+  .use(cookieParser())
   .use(cors())
   .use(compression())
   .use(helmet())
