@@ -10,8 +10,8 @@ export interface customRequest extends Request {
 export const auth = (req: customRequest, res: Response, next: NextFunction) => {
   const accessToken = req.cookies ? req.cookies.accessToken : null;
   const refreshToken = req.cookies ? req.cookies.refreshToken : null;
-console.log(accessToken)
-console.log(refreshToken)
+  console.log(accessToken);
+  console.log(refreshToken);
   if (!refreshToken) {
     const error: any = new Error("You are not an authenticated user.");
     error.status = 401;
@@ -28,6 +28,13 @@ console.log(refreshToken)
     } catch (err: any) {
       err.status = 401;
       err.message = "You are not an authenticated user.";
+      err.code = errorCode.unauthenticated;
+      return next(err);
+    }
+
+    if (isNaN(decoded.id)) {
+      const err: any = new Error("This account has not register.");
+      err.status = 401;
       err.code = errorCode.unauthenticated;
       return next(err);
     }
@@ -114,6 +121,14 @@ console.log(refreshToken)
       decoded = jwt.verify(accessToken, process.env.ACCESS_TOKEN_SECRET!) as {
         id: number;
       };
+
+      if (isNaN(decoded.id)) {
+        const err: any = new Error("This account has not register.");
+        err.status = 401;
+        err.code = errorCode.unauthenticated;
+        return next(err);
+      }
+
       req.userId = decoded.id;
       next();
     } catch (err: any) {
