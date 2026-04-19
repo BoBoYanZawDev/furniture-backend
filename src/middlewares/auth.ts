@@ -10,8 +10,7 @@ export interface customRequest extends Request {
 export const auth = (req: customRequest, res: Response, next: NextFunction) => {
   const accessToken = req.cookies ? req.cookies.accessToken : null;
   const refreshToken = req.cookies ? req.cookies.refreshToken : null;
-  console.log(accessToken);
-  console.log(refreshToken);
+  
   if (!refreshToken) {
     const error: any = new Error("You are not an authenticated user.");
     error.status = 401;

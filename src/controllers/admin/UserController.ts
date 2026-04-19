@@ -12,7 +12,7 @@ export const getAllUsers = (
   const id = req.userId;
   //   throw new Error("An error occurs!!");
   res.status(200).json({
-    message: "all user",
+    message: req.t(["welcome"]),
     currentUserId: id,
   });
 };
