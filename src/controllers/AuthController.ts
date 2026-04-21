@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { body, check, validationResult } from "express-validator";
+import { body, validationResult } from "express-validator";
 import {
   createOtp,
   createUser,
