@@ -276,7 +276,7 @@ export const confirmPassword = [
       accessPayload,
       process.env.ACCESS_TOKEN_SECRET!,
       {
-        expiresIn: 60 * 15,
+        expiresIn: 60 * 10,
       },
     );
     const refreshToken = jwt.sign(
@@ -303,7 +303,7 @@ export const confirmPassword = [
         httpOnly: true,
         secure: process.env.NODE_ENV == "production",
         sameSite: process.env.NODE_ENV == "production" ? "none" : "strict",
-        maxAge: 30 * 24 * 60 * 60 * 1000, // 15 minutes
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
       })
       .status(201)
       .json({
@@ -731,7 +731,7 @@ export const resetPassword = [
       accessPayload,
       process.env.ACCESS_TOKEN_SECRET!,
       {
-        expiresIn: 60 * 15,
+        expiresIn: 60 * 10,
       },
     );
     const refreshToken = jwt.sign(
@@ -759,7 +759,7 @@ export const resetPassword = [
         httpOnly: true,
         secure: process.env.NODE_ENV == "production",
         sameSite: process.env.NODE_ENV == "production" ? "none" : "strict",
-        maxAge: 30 * 24 * 60 * 60 * 1000, // 15 minutes
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 day
       })
       .status(201)
       .json({
