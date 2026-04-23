@@ -1,14 +1,14 @@
-import authRouter from "./auth";
-import userRouter from "./admin/user";
+import authRoutes from "./auth";
+import adminRoutes from "./admin";
 import { createRouter } from "../createRouter";
-import profileRouter from "../v1/api/user";
+import userRoutes from "./api";
 import { auth } from "../../middlewares/auth";
 import { authorise } from "../../middlewares/authorise";
 
 export const router = createRouter();
 
-router.use("/api/v1", authRouter);
-router.use("/api/v1/admin", auth, authorise(true, "ADMIN"), userRouter);
-router.use("/api/v1", profileRouter);
+router.use("/api/v1", authRoutes);
+router.use("/api/v1/user", userRoutes);
+router.use("/api/v1/admin", auth, authorise(true, "ADMIN"), adminRoutes);
 
 export default router;
