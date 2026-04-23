@@ -653,8 +653,114 @@ export const verifyOTPForPassword = [
   },
 ];
 
-export const resetPassword = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => {};
+export const resetPassword = [
+  body("phone", "Invalid phone number")
+    .trim()
+    .notEmpty()
+    .matches("^[0-9]+$")
+    .isLength({ min: 5, max: 12 }),
+  body("password", "Password must be 8 digit")
+    .trim()
+    .notEmpty()
+    .matches("^[0-9]+$")
+    .isLength({ min: 8, max: 8 }),
+  body("token", "Invalid Token").trim().notEmpty().escape(),
+  async (req: Request, res: Response, next: NextFunction) => {
+    const errors = validationResult(req).array({ onlyFirstError: true });
+    if (errors.length > 0) {
+      const error: any = new Error(errors[0]?.msg);
+      error.status = 400;
+      error.code = errorCode.invalid;
+      return next(error);
+    }
+
+    const { phone, password, token } = req.body;
+
+    const user = await getUserByPhone(phone);
+    checkUserIfNotExists(user);
+
+    const otpRow = await getOtpByPhone(phone);
+    checkOtpRow(otpRow);
+
+    // otp error count is overlimit
+    if (otpRow?.errorCount === 5) {
+      const error: any = new Error("This request may be an attack");
+      error.status = 400;
+      error.code = errorCode.attack;
+      return next(error);
+    }
+
+    if (otpRow?.verifiedToken != token) {
+      const otpData = {
+        errorCount: 5,
+      };
+      await updateOtp(otpRow!.id, otpData);
+      const error: any = new Error("Invalid Token");
+      error.status = 400;
+      error.code = errorCode.invalid;
+      return next(error);
+    }
+
+    // request is expire
+    const isExpired = moment().diff(otpRow?.updatedAt, "minutes") > 10;
+    if (isExpired) {
+      const error: any = new Error(
+        "Your request is expired. Please try again.",
+      );
+      error.status = 403;
+      error.code = errorCode.requestExpired;
+      return next(error);
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashPassword = await bcrypt.hash(password, salt);
+
+    const accessPayload = {
+      id: user!.id,
+    };
+    const refreshPayload = {
+      id: user!.id,
+      phone: user!.phone_no,
+    };
+
+    const accessToken = jwt.sign(
+      accessPayload,
+      process.env.ACCESS_TOKEN_SECRET!,
+      {
+        expiresIn: 60 * 15,
+      },
+    );
+    const refreshToken = jwt.sign(
+      refreshPayload,
+      process.env.REFRESH_TOKEN_SECRET!,
+      {
+        expiresIn: "30d",
+      },
+    );
+
+    const updateUserData = {
+      randToken: refreshToken,
+      password: hashPassword,
+    };
+    await updateUser(user!.id, updateUserData);
+
+    res
+      .cookie("accessToken", accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV == "production",
+        sameSite: process.env.NODE_ENV == "production" ? "none" : "strict",
+        maxAge: 10 * 60 * 1000, // 10 minutes
+      })
+      .cookie("refreshToken", refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV == "production",
+        sameSite: process.env.NODE_ENV == "production" ? "none" : "strict",
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 15 minutes
+      })
+      .status(201)
+      .json({
+        message: "Your password has been changed successfully",
+        userId: user!.id,
+      });
+  },
+];
