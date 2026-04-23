@@ -4,6 +4,7 @@ import { errorCode } from "../../../config/errorCode";
 import { authorise } from "../../utils/authorise";
 import { getUserById } from "../../services/authServices";
 import { checkUserIfNotExists } from "../../utils/auth";
+import { createError } from "../../utils/error";
 export interface customRequest extends Request {
   userId?: number;
 }
@@ -17,9 +18,7 @@ export const changeLanguage = [
   async (req: customRequest, res: Response, next: NextFunction) => {
     const errors = validationResult(req).array({ onlyFirstError: true });
     if (errors.length > 0) {
-      const error: any = new Error(errors[0]?.msg);
-      error.status = 400;
-      error.code = errorCode.invalid;
+      const error: any = createError(errors[0]?.msg,400,errorCode.invalid);
       return next(error);
     }
     const { lng } = req.query;
