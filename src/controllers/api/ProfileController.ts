@@ -5,8 +5,10 @@ import { authorise } from "../../utils/authorise";
 import { getUserById } from "../../services/authServices";
 import { checkUserIfNotExists } from "../../utils/auth";
 import { createError } from "../../utils/error";
+import { checkUploadFile } from "../../utils/check";
 export interface customRequest extends Request {
   userId?: number;
+  file?: any;
 }
 
 export const changeLanguage = [
@@ -18,7 +20,7 @@ export const changeLanguage = [
   async (req: customRequest, res: Response, next: NextFunction) => {
     const errors = validationResult(req).array({ onlyFirstError: true });
     if (errors.length > 0) {
-      const error: any = createError(errors[0]?.msg,400,errorCode.invalid);
+      const error: any = createError(errors[0]?.msg, 400, errorCode.invalid);
       return next(error);
     }
     const { lng } = req.query;
@@ -44,4 +46,18 @@ export const testPermission = async (
     info.content = "You have permission to read this line";
   }
   res.status(200).json({ info });
+};
+
+export const uploadProfile = async (
+  req: customRequest,
+  res: Response,
+  next: NextFunction,
+) => {
+  const userId = req.userId;
+  const images = req.file;
+  const user = await getUserById(userId!);
+  checkUserIfNotExists(user);
+  checkUploadFile(images);
+
+  res.status(200).json({ message: "Profile picture uploaded successfully" });
 };
