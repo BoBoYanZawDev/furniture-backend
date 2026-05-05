@@ -13,6 +13,7 @@ import middleware from "i18next-http-middleware";
 import router from "./routes/v1";
 import cookieParser from "cookie-parser";
 import path from "path";
+import { schedulesProvider } from "./schedules";
 
 export const app = express();
 
@@ -85,3 +86,6 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
     error: errCode,
   });
 });
+
+// schedule tasks
+schedulesProvider();
