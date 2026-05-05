@@ -2,10 +2,13 @@ import { Request, Response, NextFunction } from "express";
 import { query, validationResult } from "express-validator";
 import { errorCode } from "../../../config/errorCode";
 import { authorise } from "../../utils/authorise";
-import { getUserById } from "../../services/authServices";
+import { getUserById, updateUser } from "../../services/authServices";
 import { checkUserIfNotExists } from "../../utils/auth";
 import { createError } from "../../utils/error";
 import { checkUploadFile } from "../../utils/check";
+import { unlink } from "node:fs/promises";
+import path from "path";
+
 export interface customRequest extends Request {
   userId?: number;
   file?: any;
@@ -54,10 +57,30 @@ export const uploadProfile = async (
   next: NextFunction,
 ) => {
   const userId = req.userId;
-  const images = req.file;
+  const image = req.file;
   const user = await getUserById(userId!);
   checkUserIfNotExists(user);
-  checkUploadFile(images);
+  checkUploadFile(image);
+
+  const fileName = image!.filename;
+  if (user?.image) {
+    try {
+      const filePath = path.join(
+        __dirname,
+        "../../..",
+        "/uploads/images",
+        user!.image!,
+      );
+      await unlink(filePath);
+    } catch (err) {
+      console.error("Error deleting file:", err);
+    }
+  }
+  const userData = {
+    image: fileName,
+  };
+
+  await updateUser(user?.id!, userData);
 
   res.status(200).json({ message: "Profile picture uploaded successfully" });
 };
