@@ -6,7 +6,6 @@ import { errorCode } from "../../config/errorCode";
 
 const fileStorage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, "uploads/images");
     const type =  file.mimetype.split("/")[1];
     if (type === "pdf") {
       cb(null, "uploads/documents");
