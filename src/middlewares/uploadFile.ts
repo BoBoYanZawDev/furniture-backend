@@ -1,7 +1,5 @@
-import { Request, Response, NextFunction } from "express";
+import { Request} from "express";
 import multer, { FileFilterCallback } from "multer";
-import { createError } from "../utils/error";
-import { errorCode } from "../../config/errorCode";
 
 
 const fileStorage = multer.diskStorage({
@@ -36,6 +34,12 @@ const upload = multer({
   storage: fileStorage,
   fileFilter,
   limits: { fileSize: 2 * 1024 * 1024 }, // 2MB
+});
+
+export const uploadMemory = multer({
+  storage: multer.memoryStorage(),
+  fileFilter,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
 });
 
 export default upload;

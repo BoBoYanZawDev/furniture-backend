@@ -8,6 +8,7 @@ import { createError } from "../../utils/error";
 import { checkUploadFile } from "../../utils/check";
 import { unlink } from "node:fs/promises";
 import path from "path";
+import sharp from "sharp";
 
 export interface customRequest extends Request {
   userId?: number;
@@ -83,4 +84,92 @@ export const uploadProfile = async (
   await updateUser(user?.id!, userData);
 
   res.status(200).json({ message: "Profile picture uploaded successfully" });
+};
+export const uploadProfileOptimized = async (
+  req: customRequest,
+  res: Response,
+  next: NextFunction,
+) => {
+  const userId = req.userId;
+  const image = req.file;
+  const user = await getUserById(userId!);
+  checkUserIfNotExists(user);
+  checkUploadFile(image);
+
+  const fileName = Date.now() + "-" + Math.round(Math.random() * 1e9) + ".png";
+
+  try {
+    const optimizedImagePath = path.join(
+      __dirname,
+      "../../..",
+      "/uploads/images",
+      fileName,
+    );
+    await sharp(req.file.buffer)
+      .resize(200, 200, { fit: "cover" })
+      .png({ quality: 75 })
+      .toFile(optimizedImagePath);
+  } catch (err) {
+    console.error("Error optimizing image:", err);
+    res.status(500).json({ message: "Error optimizing image" });
+    return;
+  }
+
+  if (user?.image) {
+    try {
+      const filePath = path.join(
+        __dirname,
+        "../../..",
+        "/uploads/images",
+        user!.image!,
+      );
+      await unlink(filePath);
+    } catch (err) {
+      console.error("Error deleting file:", err);
+    }
+  }
+
+  const userData = {
+    image: fileName,
+  };
+  await updateUser(user?.id!, userData);
+
+  res.status(200).json({ message: "Profile picture uploaded successfully" });
+};
+
+export const getMyPhoto = async (
+  req: customRequest,
+  res: Response,
+  next: NextFunction,
+) => {
+  const file = path.join(
+    __dirname,
+    "../../..",
+    "/uploads/images",
+    "1778039971221-416128952-r-d-software-checklist-06-05-2026.png",
+  );
+  res.sendFile(file, (err) => {
+    if (err) {
+      console.error("Error sending file:", err);
+      res.status(404).send("File not found");
+    }
+  });
+};
+
+export const uploadProfileMultiple = async (
+  req: customRequest,
+  res: Response,
+  next: NextFunction,
+) => {
+  const images = req.files;
+  let fileNames: string[] = [];
+  if (images instanceof Array && images.length > 0) {
+    images.forEach((image: any) => {
+      checkUploadFile(images);
+      fileNames.push(image.filename);
+    });
+  }
+  res
+    .status(200)
+    .json({ message: "Profile picture uploaded successfully", fileNames });
 };
