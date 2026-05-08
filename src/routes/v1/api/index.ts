@@ -18,7 +18,7 @@ router.post("/test-permission", auth, testPermission);
 
 router.patch("/profile/upload", auth, upload.single("avatar"), uploadProfile);
 
-router.patch("/profile/upload/optimize", auth, uploadMemory.single("avatar"), uploadProfileOptimized); // optimized version for memory storage
+router.patch("/profile/upload/optimize", auth, upload.single("avatar"), uploadProfileOptimized); // optimized version for memory storage
 
 router.patch(
   "/profile/upload-multiple",

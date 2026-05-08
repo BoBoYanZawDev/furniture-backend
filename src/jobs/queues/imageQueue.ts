@@ -1,6 +1,6 @@
-import {Queue} from "bullmq";
+import { Queue } from "bullmq";
 // import {redisConnection} from "../../config/redis";
-import {Redis} from "ioredis";
+import { Redis } from "ioredis";
 
 const redisConnection = new Redis({
   host: process.env.REDIS_HOST || "localhost",
@@ -8,6 +8,8 @@ const redisConnection = new Redis({
   password: process.env.REDIS_PASSWORD,
 });
 
-export const imageQueue = new Queue("image-processing", {
+const ImageQueue = new Queue("imageQueue", {
   connection: redisConnection,
 });
+
+export default ImageQueue;

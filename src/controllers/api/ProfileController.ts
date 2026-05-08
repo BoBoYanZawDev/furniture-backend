@@ -9,6 +9,7 @@ import { checkUploadFile } from "../../utils/check";
 import { unlink } from "node:fs/promises";
 import path from "path";
 import sharp from "sharp";
+import {ImageQueue} from "../../jobs/queues/imageQueue";
 
 export interface customRequest extends Request {
   userId?: number;

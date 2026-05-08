@@ -12,8 +12,9 @@ const fileStorage = multer.diskStorage({
     }
   },
   filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
-    cb(null, uniqueSuffix + "-" + file.originalname);
+    const ext = file.mimetype.split("/")[1];
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9) + "." + ext;
+    cb(null, uniqueSuffix);
   }
 });
 
@@ -33,7 +34,7 @@ const fileFilter = function (
 const upload = multer({
   storage: fileStorage,
   fileFilter,
-  limits: { fileSize: 2 * 1024 * 1024 }, // 2MB
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
 });
 
 export const uploadMemory = multer({
