@@ -6,6 +6,7 @@
     "test": "jest",
     "dev": "nodemon src/index.ts",
     "build": "tsc -p .",
+    "work": "nodemon src/jobs/workers/imageWoker.ts",
     "start": "node dist/index.js"
   },
   "keywords": [],

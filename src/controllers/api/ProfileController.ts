@@ -9,7 +9,7 @@ import { checkUploadFile } from "../../utils/check";
 import { unlink } from "node:fs/promises";
 import path from "path";
 import sharp from "sharp";
-import {ImageQueue} from "../../jobs/queues/imageQueue";
+import ImageQueue from "../../jobs/queues/imageQueue";
 
 export interface customRequest extends Request {
   userId?: number;
@@ -138,6 +138,58 @@ export const uploadProfileOptimized = async (
   res.status(200).json({ message: "Profile picture uploaded successfully" });
 };
 
+export const uploadProfileOptimizedWithQue = async (
+  req: customRequest,
+  res: Response,
+  next: NextFunction,
+) => {
+  const userId = req.userId;
+  const image = req.file;
+  const user = await getUserById(userId!);
+  checkUserIfNotExists(user);
+  checkUploadFile(image);
+
+  const splitFileName = image.filename.split(".")[0];
+
+  const job = await ImageQueue.add("optimize_img", {
+    filePath: req.file?.path,
+    fileName: `${splitFileName}.webp`,
+  });
+
+  if (user?.image) {
+    try {
+      const orgFilePath = path.join(
+        __dirname,
+        "../../..",
+        "/uploads/images",
+        user!.image!,
+      );
+      const optimizedFilePath = path.join(
+        __dirname,
+        "../../..",
+        "/uploads/optimize_img",
+        user!.image!.split(".")[0] + ".webp",
+      );
+      await unlink(orgFilePath);
+      await unlink(optimizedFilePath);
+    } catch (err) {
+      console.error("Error deleting file:", err);
+    }
+  }
+
+  const userData = {
+    image: image?.filename,
+  };
+  await updateUser(user?.id!, userData);
+
+  res.status(200).json({
+    message: "Profile picture uploaded successfully",
+    image: splitFileName + ".webp",
+    jobID: job.id,
+  });
+};
+
+// for testing
 export const getMyPhoto = async (
   req: customRequest,
   res: Response,
