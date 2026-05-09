@@ -24,9 +24,7 @@ export const createPost = [
     .optional({ nullable: true })
     .customSanitizer((value) => {
       if (value) {
-        return value.split(",").filters((tag: string) => {
-          tag.trim() !== "";
-        });
+        return value.split(",").filter((tag: string) => tag.trim() !== "");
       }
       return value;
     }),
