@@ -32,14 +32,14 @@ enum OrderStatus {
 
 model Category {
   id       Int       @id @default(autoincrement())
-  name     String    @db.VarChar(255)
+  name     String    @unique @db.VarChar(255)
   posts    Post[]
   products Product[]
 }
 
 model Type {
   id       Int       @id @default(autoincrement())
-  name     String    @db.VarChar(255)
+  name     String    @unique @db.VarChar(255)
   posts    Post[]
   products Product[]
 }
@@ -66,37 +66,50 @@ model User {
 }
 
 model Post {
-  id         Int      @id @default(autoincrement())
-  title      String   @db.VarChar(255)
+  id         Int       @id @default(autoincrement())
+  title      String    @db.VarChar(255)
   content    String
   body       String
   image      String
-  author     User     @relation(fields: [authorId], references: [id])
+  author     User      @relation(fields: [authorId], references: [id])
   authorId   Int
   categoryId Int
-  category   Category @relation(fields: [categoryId], references: [id])
+  category   Category  @relation(fields: [categoryId], references: [id])
   typeId     Int
-  type       Type     @relation(fields: [typeId], references: [id])
-  published  Boolean  @default(false)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  type       Type      @relation(fields: [typeId], references: [id])
+  tags       PostTag[]
+  published  Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 }
 
-// for tag (polymo)
-
-model Tag {
-  id        Int        @id @default(autoincrement())
-  name      String     @db.VarChar(100)
-  taggables Taggable[]
+model PostTag {
+  id    Int    @id @default(autoincrement())
+  name  String @unique @db.VarChar(100)
+  posts Post[]
 }
 
-model Taggable {
-  id     Int    @id @default(autoincrement())
-  tagId  Int
-  tag    Tag    @relation(fields: [tagId], references: [id])
-  type   String @db.VarChar(7)
-  typeId Int
+model ProductTag {
+  id       Int       @id @default(autoincrement())
+  name     String    @unique @db.VarChar(100)
+  products Product[]
 }
+
+// // for tag (polymo)
+
+// model Tag {
+//   id        Int        @id @default(autoincrement())
+//   name      String     @db.VarChar(100)
+//   taggables Taggable[]
+// }
+
+// model Taggable {
+//   id     Int    @id @default(autoincrement())
+//   tagId  Int
+//   tag    Tag    @relation(fields: [tagId], references: [id])
+//   type   String @db.VarChar(7)
+//   typeId Int
+// }
 
 // for product
 model Product {
@@ -116,6 +129,7 @@ model Product {
   updatedAt   DateTime           @updatedAt
   images      Image[]
   orders      ProductsOnOrders[]
+  tags        ProductTag[]
 }
 
 model Image {
