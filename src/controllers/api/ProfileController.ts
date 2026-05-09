@@ -149,7 +149,7 @@ export const uploadProfileOptimizedWithQue = async (
   checkUserIfNotExists(user);
   checkUploadFile(image);
 
-  const splitFileName = image.filename.split(".")[0];
+  const splitFileName = image?.filename.split(".")[0];
 
   const job = await ImageQueue.add(
     "optimize_img",
