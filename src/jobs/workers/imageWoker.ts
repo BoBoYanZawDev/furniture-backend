@@ -2,13 +2,7 @@ import { Worker } from "bullmq";
 import { Redis } from "ioredis";
 import sharp from "sharp";
 import path from "path";
-
-const redisConnection = new Redis({
-  host: process.env.REDIS_HOST || "localhost",
-  port: process.env.REDIS_PORT ? parseInt(process.env.REDIS_PORT) : 6379,
-  //   password: process.env.REDIS_PASSWORD,
-  maxRetriesPerRequest: null,
-});
+import { redisConfig } from "../../../config/redisClient";
 
 const imageWorker = new Worker(
   "imageQueue",
@@ -27,7 +21,10 @@ const imageWorker = new Worker(
       .png({ quality: 75 })
       .toFile(optimizedImagePath);
   },
-  { connection: redisConnection },
+  // { connection: redis},
+  {
+    connection: redisConfig.connection,
+  },
 );
 
 imageWorker.on("completed", (job) => {
