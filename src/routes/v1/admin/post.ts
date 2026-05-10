@@ -8,8 +8,8 @@ import { createRouter } from "../../createRouter";
 
 const router = createRouter();
 
-router.post("/posts", upload.single("image"), createPost);
-router.patch("/posts", upload.single("image"), updatePost);
-router.delete("/posts", deletePost);
+router.post("/", upload.single("image"), createPost);
+router.patch("/", upload.single("image"), updatePost);
+router.delete("/", deletePost);
 
 export default router;

@@ -1,4 +1,5 @@
 import { errorCode } from "../../config/errorCode";
+import { removeFiles } from "./helper";
 
 export const checkUserExists = (user: any) => {
   if (user) {
@@ -15,6 +16,15 @@ export const checkUserIfNotExists = (user: any) => {
     error.code = errorCode.unauthenticated;
     throw error;
   }
+};
+
+export const checkUserIfNotExistsRemoveFile = (user: any, image?: string) => {
+  if (user) return;
+  if (image) removeFiles(image);
+  const error: any = new Error("This phone has not registered");
+  error.status = 401;
+  error.code = errorCode.unauthenticated;
+  throw error;
 };
 
 export const checkOptErrorIfSameDate = (
