@@ -4,9 +4,13 @@ import { errorCode } from "../../../config/errorCode";
 import { checkUploadFile } from "../../utils/check";
 import { createError } from "../../utils/error";
 import ImageQueue from "../../jobs/queues/imageQueue";
-import { checkUserIfNotExistsRemoveFile } from "../../utils/auth";
+import {
+  checkUserIfNotExists,
+  checkUserIfNotExistsRemoveFile,
+} from "../../utils/auth";
 import {
   createOnePost,
+  deleteOnePost,
   getPostById,
   PostArgs,
   updateOnePost,
@@ -191,6 +195,7 @@ export const updatePost = [
     });
   },
 ];
+
 export const deletePost = [
   body("postId", "Post Id is required.").isInt({ gt: 0 }),
   async (req: customRequest, res: Response, next: NextFunction) => {
@@ -199,5 +204,30 @@ export const deletePost = [
       const error: any = createError(errors[0]?.msg, 400, errorCode.invalid);
       return next(error);
     }
+
+    const user = req.user;
+    checkUserIfNotExists(user);
+
+    const { postId } = req.body;
+    const post = await getPostById(+postId);
+    if (!post) {
+      return next(
+        createError("This data modal doesn't exit", 401, errorCode.invalid),
+      );
+    }
+
+    if (user.id !== post.authorId) {
+      return next(
+        createError("This action is not allowed", 403, errorCode.unauthorised),
+      );
+    }
+
+    removeFiles(post.image);
+    const postDeleted = await deleteOnePost(post.id);
+
+    res.status(200).json({
+      message: "Post deleted successfully",
+      postId: postDeleted.id,
+    });
   },
 ];
