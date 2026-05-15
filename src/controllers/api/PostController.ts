@@ -1,9 +1,12 @@
 import { Request, Response, NextFunction } from "express";
-import { body, param, validationResult } from "express-validator";
+import { param, query, validationResult } from "express-validator";
 import { errorCode } from "../../../config/errorCode";
 import { createError } from "../../utils/error";
 import { checkUserIfNotExists } from "../../utils/auth";
-import { getPostWithRelations } from "../../services/postServices";
+import {
+  getPostsList,
+  getPostWithRelations,
+} from "../../services/postServices";
 import { getUserById } from "../../services/authServices";
 
 export interface customRequest extends Request {
@@ -35,7 +38,10 @@ export const getPost = [
       fullName: post?.author?.fullName,
       category_name: post?.category.name,
       type_name: post?.type.name,
-      tags: post?.tags && post.tags.length > 0 ? post.tags.map((i) => i.name) : null,
+      tags:
+        post?.tags && post.tags.length > 0
+          ? post.tags.map((i) => i.name)
+          : null,
     };
 
     res.status(200).json({
@@ -45,15 +51,72 @@ export const getPost = [
   },
 ];
 
+// offest paginations
 export const getPostsByPagination = [
-  async (req: Request, res: Response, next: NextFunction) => {
+  query("page", "Page number must be unsigned integer.")
+    .isInt({ gt: 0 })
+    .optional(),
+  query("limit", "Limit number must be unsigned integer.")
+    .isInt({ gt: 0 })
+    .optional(),
+  async (req: customRequest, res: Response, next: NextFunction) => {
     const errors = validationResult(req).array({ onlyFirstError: true });
     if (errors.length > 0) {
       const error: any = createError(errors[0]?.msg, 400, errorCode.invalid);
       return next(error);
     }
+
+    const page = req.query.page || 1;
+    const limit = req.query.limit || 5;
+    const userId = req.userId;
+    const user = await getUserById(userId!);
+    checkUserIfNotExists(user);
+
+    const skip = (+page - 1) * +limit;
+    const options = {
+      skip,
+      take: +limit + 1,
+      select: {
+        id: true,
+        title: true,
+        content: true,
+        body: true,
+        image: true,
+        updatedAt: true,
+        author: {
+          select: {
+            fullName: true,
+          },
+        },
+      },
+      orderBy: {
+        updatedAt: "desc",
+      },
+    };
+
+    const posts = await getPostsList(options);
+
+    const hasNextPage = posts.length > +limit;
+
+    let nextPage = null;
+    const previousPage = +page !== 1 ? +page - 1 : null;
+
+    if (hasNextPage) {
+      posts.pop();
+      nextPage = +page + 1;
+    }
+
+    res.status(200).json({
+      message: "Data fetched successfully.",
+      posts,
+      currentPage: page,
+      hasNextPage,
+      nextPage,
+      previousPage,
+    });
   },
 ];
+
 export const getInfinitePostsByPagination = [
   async (req: Request, res: Response, next: NextFunction) => {
     const errors = validationResult(req).array({ onlyFirstError: true });

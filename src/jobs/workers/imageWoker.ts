@@ -1,5 +1,4 @@
 import { Worker } from "bullmq";
-import { Redis } from "ioredis";
 import sharp from "sharp";
 import path from "path";
 import { redisConfig } from "../../../config/redisClient";

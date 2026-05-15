@@ -94,7 +94,7 @@ export const deleteOnePost = async (id: number) => {
   });
 };
 
-export const getPostWithRelations = (id: number) => {
+export const getPostWithRelations = async (id: number) => {
   return prisma.post.findUnique({
     where: { id },
     select: {
@@ -126,4 +126,8 @@ export const getPostWithRelations = (id: number) => {
       },
     },
   });
+};
+
+export const getPostsList = async (options: any) => {
+  return prisma.post.findMany(options);
 };
