@@ -8,6 +8,7 @@ import {
   getPostWithRelations,
 } from "../../services/postServices";
 import { getUserById } from "../../services/authServices";
+import { getOrSetCache } from "../../utils/cache";
 
 export interface customRequest extends Request {
   userId?: number;
@@ -27,7 +28,15 @@ export const getPost = [
     checkUserIfNotExists(user);
 
     const postId = req.params.id;
-    const post = await getPostWithRelations(+postId!);
+    // const post = await getPostWithRelations(+postId!);
+
+    // cache operation
+    const cacheKey = `posts:${JSON.stringify(postId)}`;
+    const post = await getOrSetCache(
+      cacheKey,
+      async () => await getPostWithRelations(+postId!),
+    );
+
     const modifiedPost = {
       id: post?.id,
       title: post?.title,
@@ -40,7 +49,7 @@ export const getPost = [
       type_name: post?.type.name,
       tags:
         post?.tags && post.tags.length > 0
-          ? post.tags.map((i) => i.name)
+          ? post.tags.map((i: any) => i.name)
           : null,
     };
 
@@ -94,7 +103,13 @@ export const getPostsByPagination = [
       },
     };
 
-    const posts = await getPostsList(options);
+    // const posts = await getPostsList(options);
+    // cache operation
+    const cacheKey = `posts:${JSON.stringify(req.query)}`;
+    const posts = await getOrSetCache(
+      cacheKey,
+      async () => await getPostsList(options),
+    );
 
     const hasNextPage = posts.length > +limit;
 
@@ -160,8 +175,13 @@ export const getInfinitePostsByPagination = [
       },
     };
 
-    const posts = await getPostsList(options);
-
+    // const posts = await getPostsList(options);
+    // cache operation
+    const cacheKey = `posts:${JSON.stringify(req.query)}`;
+    const posts = await getOrSetCache(
+      cacheKey,
+      async () => await getPostsList(options),
+    );
     const hasNextPage = posts.length > +limit;
 
     if (hasNextPage) {
@@ -172,7 +192,7 @@ export const getInfinitePostsByPagination = [
       message: "Get all infinite post.",
       posts,
       hasNextPage,
-      newCursor
+      newCursor,
     });
   },
 ];

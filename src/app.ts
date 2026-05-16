@@ -14,6 +14,7 @@ import router from "./routes/v1";
 import cookieParser from "cookie-parser";
 import path from "path";
 import { schedulesProvider } from "./schedules";
+import logger from "./utils/logger";
 
 export const app = express();
 
@@ -82,6 +83,13 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   const status = err.status || 500;
   const message = err.message || "Server Error";
   const errCode = err.code || "Error Code";
+
+  logger.error(err.message, {
+    method: req.method,
+    url: req.originalUrl,
+    stack: err.stack,
+  });
+  
   res.status(status).json({
     message,
     error: errCode,

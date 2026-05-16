@@ -17,11 +17,25 @@ import {
 } from "../../services/postServices";
 import sanitizeHtml from "sanitize-html";
 import { removeFiles } from "../../utils/helper";
+import cacheQueue from "../../jobs/queues/cacheQueue";
 
 export interface customRequest extends Request {
   userId?: number;
   user?: any;
 }
+
+const clearPostCache = async () => {
+  await cacheQueue.add(
+    "invalidate-post-cache",
+    {
+      pattern: "posts:*",
+    },
+    {
+      jobId: `invalidate-${Date.now()}`,
+      priority: 1,
+    },
+  );
+};
 
 export const createPost = [
   body("title", "Title is required").trim().notEmpty().escape(),
@@ -90,6 +104,8 @@ export const createPost = [
     };
 
     const post = await createOnePost(data);
+
+    await clearPostCache();
 
     res
       .status(201)
@@ -189,6 +205,9 @@ export const updatePost = [
     }
 
     const postUpdated = await updateOnePost(post.id, data);
+
+    await clearPostCache();
+
     res.status(200).json({
       message: "Successfully updated the post",
       postId: postUpdated.id,
@@ -224,6 +243,8 @@ export const deletePost = [
 
     removeFiles(post.image);
     const postDeleted = await deleteOnePost(post.id);
+
+    await clearPostCache();
 
     res.status(200).json({
       message: "Post deleted successfully",

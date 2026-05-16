@@ -2,6 +2,7 @@ import { Worker } from "bullmq";
 import sharp from "sharp";
 import path from "path";
 import { redisConfig } from "../../../config/redisClient";
+import logger from "../../utils/logger";
 
 const imageWorker = new Worker(
   "imageQueue",
@@ -27,10 +28,12 @@ const imageWorker = new Worker(
 );
 
 imageWorker.on("completed", (job) => {
+  logger.info(`Job with ID ${job.id} has been completed.`);
   console.log(`Job with ID ${job.id} has been completed.`);
 });
 
 imageWorker.on("failed", (job: any, err) => {
+  logger.error(`Job with ID ${job?.id} has failed. Error: ${err.message}`);
   console.error(`Job with ID ${job?.id} has failed. Error: ${err.message}`);
 });
 
