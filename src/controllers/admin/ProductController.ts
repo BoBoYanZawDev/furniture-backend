@@ -250,12 +250,6 @@ export const deleteProduct = [
       );
     }
 
-    if (user.id !== post.authorId) {
-      return next(
-        createError("This action is not allowed", 403, errorCode.unauthorised),
-      );
-    }
-
     removeFiles(post.image);
     const postDeleted = await deleteOneProduct(post.id);
 

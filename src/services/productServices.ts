@@ -1,34 +1,32 @@
 import { prisma } from "../lib/prisma";
 
-
-export const createOneProduct = async (postData: any) => {
+export const createOneProduct = async (productData: any) => {
   const data: any = {
-    title: postData.title,
-    content: postData.content,
-    body: postData.body,
-    image: postData.image,
-    author: {
-      connect: {
-        id: postData.authorId,
-      },
-    },
+    name: productData.name,
+    description: productData.description,
+    price: productData.price,
+    discount: productData.discount,
+    inventory: productData.inventory,
     category: {
       connectOrCreate: {
-        where: { name: postData.category },
-        create: { name: postData.category },
+        where: { name: productData.category },
+        create: { name: productData.category },
       },
     },
     type: {
       connectOrCreate: {
-        where: { name: postData.type },
-        create: { name: postData.type },
+        where: { name: productData.type },
+        create: { name: productData.type },
       },
+    },
+    images: {
+      create: productData.images,
     },
   };
 
-  if (postData.tags && postData.tags.length > 0) {
+  if (productData.tags && productData.tags.length > 0) {
     data.tags = {
-      connectOrCreate: postData.tags.map((tagName) => ({
+      connectOrCreate: productData.tags.map((tagName: any) => ({
         where: { name: tagName },
         create: { name: tagName },
       })),
@@ -43,34 +41,38 @@ export const getProductById = async (id: number) => {
   });
 };
 
-export const updateOneProduct = async (id: number, postData: any) => {
+export const updateOneProduct = async (id: number, productData: any) => {
   const data: any = {
-    title: postData.title,
-    content: postData.content,
-    body: postData.body,
-    image: postData.image,
+    name: productData.name,
+    description: productData.description,
+    price: productData.price,
+    discount: productData.discount,
+    inventory: productData.inventory,
     category: {
       connectOrCreate: {
-        where: { name: postData.category },
-        create: { name: postData.category },
+        where: { name: productData.category },
+        create: { name: productData.category },
       },
     },
     type: {
       connectOrCreate: {
-        where: { name: postData.type },
-        create: { name: postData.type },
+        where: { name: productData.type },
+        create: { name: productData.type },
       },
     },
   };
 
-  if (postData.image) {
-    data.image = postData.image;
+  if (productData.images && productData.images.length > 0) {
+    data.images = {
+      deleteMany: {},
+      create: data.images,
+    };
   }
 
-  if (postData.tags && postData.tags.length > 0) {
+  if (productData.tags && productData.tags.length > 0) {
     data.tags = {
       set: [],
-      connectOrCreate: postData.tags.map((tagName) => ({
+      connectOrCreate: productData.tags.map((tagName: any) => ({
         where: { name: tagName },
         create: { name: tagName },
       })),
@@ -91,16 +93,13 @@ export const getProductWithRelations = async (id: number) => {
     where: { id },
     select: {
       id: true,
-      title: true,
-      content: true,
-      body: true,
-      image: true,
+      name: true,
+      description: true,
+      price: true,
+      discount: true,
+      rating: true,
+      inventory: true,
       updatedAt: true,
-      author: {
-        select: {
-          fullName: true,
-        },
-      },
       category: {
         select: {
           name: true,
@@ -114,6 +113,11 @@ export const getProductWithRelations = async (id: number) => {
       tags: {
         select: {
           name: true,
+        },
+      },
+      images: {
+        select: {
+          path: true,
         },
       },
     },
