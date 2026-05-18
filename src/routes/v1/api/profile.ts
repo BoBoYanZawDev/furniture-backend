@@ -1,5 +1,6 @@
 import {
   changeLanguage,
+  changePassword,
   getMyPhoto,
   testPermission,
   uploadProfile,
@@ -14,6 +15,8 @@ import { createRouter } from "../../createRouter";
 const router = createRouter();
 
 router.post("/change-language", changeLanguage);
+
+router.post("/change-password", auth, changePassword);
 
 router.post("/test-permission", auth, testPermission);
 
@@ -41,6 +44,5 @@ router.patch(
 );
 
 router.get("/profile/my-photo", getMyPhoto); // testing photo
-
 
 export default router;

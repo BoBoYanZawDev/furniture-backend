@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { query, validationResult } from "express-validator";
+import { body, query, validationResult } from "express-validator";
 import { errorCode } from "../../../config/errorCode";
 import { authorise } from "../../utils/authorise";
 import { getUserById, updateUser } from "../../services/authServices";
@@ -10,6 +10,8 @@ import { unlink } from "node:fs/promises";
 import path from "path";
 import sharp from "sharp";
 import ImageQueue from "../../jobs/queues/imageQueue";
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 
 export interface customRequest extends Request {
   userId?: number;
@@ -239,3 +241,117 @@ export const uploadProfileMultiple = async (
     .status(200)
     .json({ message: "Profile picture uploaded successfully", fileNames });
 };
+
+export const changePassword = [
+  body("current_password", "Current Password is required.")
+    .trim()
+    .notEmpty()
+    .matches("^[0-9]+$")
+    .isLength({ min: 8, max: 8 }),
+  body("new_password", "New Password must be at least 8 characters.")
+    .trim()
+    .notEmpty()
+    .matches("^[0-9]+$")
+    .isLength({ min: 8, max: 8 }),
+  body("new_password_confirm", "Confirm Password is required.")
+    .trim()
+    .notEmpty()
+    .matches("^[0-9]+$")
+    .isLength({ min: 8, max: 8 }),
+  async (req: customRequest, res: Response, next: NextFunction) => {
+    const errors = validationResult(req).array({ onlyFirstError: true });
+    if (errors.length > 0) {
+      const error: any = createError(errors[0]?.msg, 400, errorCode.invalid);
+      return next(error);
+    }
+
+    const userId = req.userId;
+    const user = await getUserById(userId!);
+    checkUserIfNotExists(user);
+
+    const { current_password, new_password, new_password_confirm } = req.body;
+
+    const isMatchPassword = await bcrypt.compare(
+      current_password,
+      user!.password,
+    );
+
+    if (!isMatchPassword) {
+      const error: any = createError(
+        "Password doesn't match.",
+        401,
+        errorCode.invalid,
+      );
+      return next(error);
+    }
+    if (current_password === new_password) {
+      const error: any = createError(
+        "Current password and new password must not be the same.",
+        422,
+        errorCode.invalid,
+      );
+      return next(error);
+    }
+
+    if (new_password !== new_password_confirm) {
+      const error: any = createError(
+        "New password and confirm password do not match.",
+        422,
+        errorCode.invalid,
+      );
+      return next(error);
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashPassword = await bcrypt.hash(new_password, salt);
+
+    const accessPayload = {
+      id: user!.id,
+    };
+
+    const refreshPayload = {
+      id: user!.id,
+      phone: user!.phone_no,
+    };
+
+    const accessToken = jwt.sign(
+      accessPayload,
+      process.env.ACCESS_TOKEN_SECRET!,
+      {
+        expiresIn: "10m",
+      },
+    );
+
+    const refreshToken = jwt.sign(
+      refreshPayload,
+      process.env.REFRESH_TOKEN_SECRET!,
+      {
+        expiresIn: "30d",
+      },
+    );
+
+    await updateUser(user!.id, {
+      randToken: refreshToken,
+      password: hashPassword,
+    });
+
+    return res
+      .cookie("accessToken", accessToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+        maxAge: 10 * 60 * 1000,
+      })
+      .cookie("refreshToken", refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+        maxAge: 30 * 24 * 60 * 60 * 1000,
+      })
+      .status(200)
+      .json({
+        message: "Your password has been changed successfully.",
+        userId: user!.id,
+      });
+  },
+];
