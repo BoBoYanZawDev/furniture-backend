@@ -5,16 +5,11 @@ import { checkUploadFile } from "../../utils/check";
 import { createError } from "../../utils/error";
 import ImageQueue from "../../jobs/queues/imageQueue";
 import {
-  checkUserIfNotExists,
-  checkUserIfNotExistsRemoveFile,
-} from "../../utils/auth";
-import {
   createOneProduct,
   deleteOneProduct,
   getProductById,
   updateOneProduct,
 } from "../../services/productServices";
-import sanitizeHtml from "sanitize-html";
 import { removeManyFiles } from "../../utils/helper";
 import cacheQueue from "../../jobs/queues/cacheQueue";
 
@@ -186,9 +181,9 @@ export const updateProduct = [
       );
     }
 
-    let orgFileName = [] ;
-    if(images && images.length > 0){
-     orgFileName = images.map((img: any) => ({ path: img.filename }));
+    let orgFileName = [];
+    if (images && images.length > 0) {
+      orgFileName = images.map((img: any) => ({ path: img.filename }));
     }
     const data: any = {
       name,
@@ -245,34 +240,38 @@ export const updateProduct = [
   },
 ];
 
-// export const deleteProduct = [
-//   body("postId", "Post Id is required.").isInt({ gt: 0 }),
-//   async (req: customRequest, res: Response, next: NextFunction) => {
-//     const errors = validationResult(req).array({ onlyFirstError: true });
-//     if (errors.length > 0) {
-//       const error: any = createError(errors[0]?.msg, 400, errorCode.invalid);
-//       return next(error);
-//     }
+export const deleteProduct = [
+  body("productId", "Product Id is required.").isInt({ gt: 0 }),
+  async (req: customRequest, res: Response, next: NextFunction) => {
+    const errors = validationResult(req).array({ onlyFirstError: true });
+    if (errors.length > 0) {
+      const error: any = createError(errors[0]?.msg, 400, errorCode.invalid);
+      return next(error);
+    }
 
-//     const user = req.user;
-//     checkUserIfNotExists(user);
+    const { productId } = req.body;
+    const product = await getProductById(+productId);
+    if (!product) {
+      return next(
+        createError("This data modal doesn't exit", 401, errorCode.invalid),
+      );
+    }
 
-//     const { postId } = req.body;
-//     const post = await getProductById(+postId);
-//     if (!post) {
-//       return next(
-//         createError("This data modal doesn't exit", 401, errorCode.invalid),
-//       );
-//     }
+    if (product.images && product.images.length > 0) {
+      const orgFiles = product.images.map((img) => img.path);
+      const optFiles = product.images.map(
+        (img) => img.path.split(".")[0] + ".webp",
+      );
+      await removeManyFiles(orgFiles, optFiles);
+    }
 
-//     removeFiles(post.image);
-//     const postDeleted = await deleteOneProduct(post.id);
+    const productDeleted = await deleteOneProduct(product.id);
 
-//     await clearProductCache();
+    await clearProductCache();
 
-//     res.status(200).json({
-//       message: "Post deleted successfully",
-//       postId: postDeleted.id,
-//     });
-//   },
-// ];
+    res.status(200).json({
+      message: "Post deleted successfully",
+      postId: productDeleted.id,
+    });
+  },
+];

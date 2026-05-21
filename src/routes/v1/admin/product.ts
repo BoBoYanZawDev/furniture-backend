@@ -1,6 +1,6 @@
 import {
   createProduct,
-  // deleteProduct,
+  deleteProduct,
   updateProduct,
 } from "../../../controllers/admin/ProductController";
 import upload from "../../../middlewares/uploadFile";
@@ -10,6 +10,6 @@ const router = createRouter();
 
 router.post("/", upload.array("images",5), createProduct);
 router.patch("/", upload.array("images",5), updateProduct);
-// router.delete("/", deleteProduct);
+router.delete("/", deleteProduct);
 
 export default router;
