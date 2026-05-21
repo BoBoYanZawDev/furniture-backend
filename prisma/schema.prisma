@@ -118,7 +118,7 @@ model Product {
   description String             @db.Text
   price       Decimal            @db.Decimal(10, 2)
   discount    Decimal            @default(0) @db.Decimal(10, 2)
-  rating      Int                @db.SmallInt
+  rating      Int                @default(0) @db.SmallInt
   inventory   Int                @default(0)
   status      Status             @default(ACTIVE)
   categoryId  Int

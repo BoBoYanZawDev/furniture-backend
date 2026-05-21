@@ -43,10 +43,10 @@ export const createProduct = [
   body("price", "Price is required")
     .isFloat({ min: 0.1 })
     .isDecimal({ decimal_digits: "1,2" }),
-  body("discount", "Discount is")
+  body("discount", "Discount must be integer")
     .isFloat({ min: 0 })
     .isDecimal({ decimal_digits: "1,2" }),
-  body("inventory", "Discount is").isInt({ min: 1 }),
+  body("inventory", "inventory is required").isInt({ min: 1 }),
   body("category", "Category is required.").trim().notEmpty().escape(),
   body("type", "Type is required.").trim().notEmpty().escape(),
   body("tags", "Tag is invalid.")
@@ -83,8 +83,9 @@ export const createProduct = [
     checkUploadFile(images && images.length > 0);
 
     await Promise.all(
-      images.forEach(async (image: any) => {
+      images.map(async (image: any) => {
         const splitFileName = image!.filename.split(".")[0];
+
         return ImageQueue.add(
           "optimize_img",
           {
@@ -106,7 +107,6 @@ export const createProduct = [
     );
 
     const orgFileName = images.map((img: any) => ({ path: img.filename }));
-
     const data: any = {
       name,
       description,
@@ -128,136 +128,136 @@ export const createProduct = [
   },
 ];
 
-export const updateProduct = [
-  body("postId", "Post Id is required.").isInt({ min: 1 }),
-  body("title", "Title is required").trim().notEmpty().escape(),
-  body("content", "Content is required").trim().notEmpty().escape(),
-  body("body", "Body is required")
-    .trim()
-    .notEmpty()
-    .customSanitizer((value) => sanitizeHtml(value))
-    .notEmpty(),
-  body("category", "Category is required.").trim().notEmpty().escape(),
-  body("type", "Type is required.").trim().notEmpty().escape(),
-  body("tags", "Tag is invalid.")
-    .optional({ nullable: true })
-    .customSanitizer((value) => {
-      if (value) {
-        return value.split(",").filter((tag: string) => tag.trim() !== "");
-      }
-      return value;
-    }),
-  async (req: customRequest, res: Response, next: NextFunction) => {
-    const errors = validationResult(req).array({ onlyFirstError: true });
-    const image = req.file;
+// export const updateProduct = [
+//   body("postId", "Post Id is required.").isInt({ min: 1 }),
+//   body("title", "Title is required").trim().notEmpty().escape(),
+//   body("content", "Content is required").trim().notEmpty().escape(),
+//   body("body", "Body is required")
+//     .trim()
+//     .notEmpty()
+//     .customSanitizer((value) => sanitizeHtml(value))
+//     .notEmpty(),
+//   body("category", "Category is required.").trim().notEmpty().escape(),
+//   body("type", "Type is required.").trim().notEmpty().escape(),
+//   body("tags", "Tag is invalid.")
+//     .optional({ nullable: true })
+//     .customSanitizer((value) => {
+//       if (value) {
+//         return value.split(",").filter((tag: string) => tag.trim() !== "");
+//       }
+//       return value;
+//     }),
+//   async (req: customRequest, res: Response, next: NextFunction) => {
+//     const errors = validationResult(req).array({ onlyFirstError: true });
+//     const image = req.file;
 
-    if (errors.length > 0) {
-      if (image) {
-        await removeFiles(image.filename, null);
-      }
-      const error: any = createError(errors[0]?.msg, 400, errorCode.invalid);
-      return next(error);
-    }
+//     if (errors.length > 0) {
+//       if (image) {
+//         await removeFiles(image.filename, null);
+//       }
+//       const error: any = createError(errors[0]?.msg, 400, errorCode.invalid);
+//       return next(error);
+//     }
 
-    const user = req.user;
-    checkUserIfNotExistsRemoveFile(user, image?.filename);
+//     const user = req.user;
+//     checkUserIfNotExistsRemoveFile(user, image?.filename);
 
-    const { postId, title, content, body, category, type, tags } = req.body;
+//     const { postId, title, content, body, category, type, tags } = req.body;
 
-    const post = await getProductById(+postId);
-    if (!post) {
-      if (image!.filename) {
-        removeFiles(image!.filename);
-      }
-      return next(
-        createError("This data modal doesn't exit", 401, errorCode.invalid),
-      );
-    }
+//     const post = await getProductById(+postId);
+//     if (!post) {
+//       if (image!.filename) {
+//         removeFiles(image!.filename);
+//       }
+//       return next(
+//         createError("This data modal doesn't exit", 401, errorCode.invalid),
+//       );
+//     }
 
-    if (user.id !== post.authorId) {
-      if (image!.filename) {
-        removeFiles(image!.filename);
-      }
-      return next(
-        createError("This action is not allowed", 403, errorCode.unauthorised),
-      );
-    }
+//     if (user.id !== post.authorId) {
+//       if (image!.filename) {
+//         removeFiles(image!.filename);
+//       }
+//       return next(
+//         createError("This action is not allowed", 403, errorCode.unauthorised),
+//       );
+//     }
 
-    let data: any = {
-      title,
-      content,
-      body,
-      image: image?.filename,
-      category,
-      type,
-      tags,
-    };
+//     let data: any = {
+//       title,
+//       content,
+//       body,
+//       image: image?.filename,
+//       category,
+//       type,
+//       tags,
+//     };
 
-    if (image) {
-      data.image = image?.filename;
-      const splitFileName = image?.filename.split(".")[0];
+//     if (image) {
+//       data.image = image?.filename;
+//       const splitFileName = image?.filename.split(".")[0];
 
-      await ImageQueue.add(
-        "optimize_img",
-        {
-          filePath: req.file?.path,
-          fileName: `${splitFileName}.webp`,
-          width: 835,
-          height: 577,
-          quality: 100,
-        },
-        {
-          attempts: 3,
-          backoff: {
-            type: "exponential",
-            delay: 1000,
-          },
-        },
-      );
+//       await ImageQueue.add(
+//         "optimize_img",
+//         {
+//           filePath: req.file?.path,
+//           fileName: `${splitFileName}.webp`,
+//           width: 835,
+//           height: 577,
+//           quality: 100,
+//         },
+//         {
+//           attempts: 3,
+//           backoff: {
+//             type: "exponential",
+//             delay: 1000,
+//           },
+//         },
+//       );
 
-      const optimizedFile = post.image.split(".")[0] + ".webp";
-      await removeFiles(post.image, optimizedFile);
-    }
+//       const optimizedFile = post.image.split(".")[0] + ".webp";
+//       await removeFiles(post.image, optimizedFile);
+//     }
 
-    const postUpdated = await updateOneProduct(post.id, data);
+//     const postUpdated = await updateOneProduct(post.id, data);
 
-    await clearProductCache();
+//     await clearProductCache();
 
-    res.status(200).json({
-      message: "Successfully updated the post",
-      postId: postUpdated.id,
-    });
-  },
-];
+//     res.status(200).json({
+//       message: "Successfully updated the post",
+//       postId: postUpdated.id,
+//     });
+//   },
+// ];
 
-export const deleteProduct = [
-  body("postId", "Post Id is required.").isInt({ gt: 0 }),
-  async (req: customRequest, res: Response, next: NextFunction) => {
-    const errors = validationResult(req).array({ onlyFirstError: true });
-    if (errors.length > 0) {
-      const error: any = createError(errors[0]?.msg, 400, errorCode.invalid);
-      return next(error);
-    }
+// export const deleteProduct = [
+//   body("postId", "Post Id is required.").isInt({ gt: 0 }),
+//   async (req: customRequest, res: Response, next: NextFunction) => {
+//     const errors = validationResult(req).array({ onlyFirstError: true });
+//     if (errors.length > 0) {
+//       const error: any = createError(errors[0]?.msg, 400, errorCode.invalid);
+//       return next(error);
+//     }
 
-    const user = req.user;
-    checkUserIfNotExists(user);
+//     const user = req.user;
+//     checkUserIfNotExists(user);
 
-    const { postId } = req.body;
-    const post = await getProductById(+postId);
-    if (!post) {
-      return next(
-        createError("This data modal doesn't exit", 401, errorCode.invalid),
-      );
-    }
+//     const { postId } = req.body;
+//     const post = await getProductById(+postId);
+//     if (!post) {
+//       return next(
+//         createError("This data modal doesn't exit", 401, errorCode.invalid),
+//       );
+//     }
 
-    removeFiles(post.image);
-    const postDeleted = await deleteOneProduct(post.id);
+//     removeFiles(post.image);
+//     const postDeleted = await deleteOneProduct(post.id);
 
-    await clearProductCache();
+//     await clearProductCache();
 
-    res.status(200).json({
-      message: "Post deleted successfully",
-      postId: postDeleted.id,
-    });
-  },
-];
+//     res.status(200).json({
+//       message: "Post deleted successfully",
+//       postId: postDeleted.id,
+//     });
+//   },
+// ];
