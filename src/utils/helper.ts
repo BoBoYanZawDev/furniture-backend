@@ -35,9 +35,9 @@ export const removeManyFiles = async (
   try {
     for (const orgFile of orgFiles) {
       const orgFilePath = path.join(
-        __dirname,
-        "../../..",
-        "/uploads/images",
+        process.cwd(),
+        "uploads",
+        "images",
         orgFile,
       );
       await unlink(orgFilePath);
@@ -46,9 +46,9 @@ export const removeManyFiles = async (
     if (optimizedFiles && optimizedFiles.length > 0) {
       for (const optimizedFile of optimizedFiles) {
         const optimizedFilePath = path.join(
-          __dirname,
-          "../../..",
-          "/uploads/optimize_img",
+          process.cwd(),
+          "uploads",
+          "optimize_img",
           optimizedFile,
         );
         await unlink(optimizedFilePath);
