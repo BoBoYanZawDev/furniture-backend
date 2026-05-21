@@ -38,6 +38,9 @@ export const createOneProduct = async (productData: any) => {
 export const getProductById = async (id: number) => {
   return prisma.product.findUnique({
     where: { id },
+    include : {
+      images :true
+    }
   });
 };
 
@@ -65,7 +68,7 @@ export const updateOneProduct = async (id: number, productData: any) => {
   if (productData.images && productData.images.length > 0) {
     data.images = {
       deleteMany: {},
-      create: data.images,
+      create: productData.images,
     };
   }
 
