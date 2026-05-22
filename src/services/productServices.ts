@@ -38,9 +38,9 @@ export const createOneProduct = async (productData: any) => {
 export const getProductById = async (id: number) => {
   return prisma.product.findUnique({
     where: { id },
-    include : {
-      images :true
-    }
+    include: {
+      images: true,
+    },
   });
 };
 
@@ -94,32 +94,16 @@ export const deleteOneProduct = async (id: number) => {
 export const getProductWithRelations = async (id: number) => {
   return prisma.product.findUnique({
     where: { id },
-    select: {
-      id: true,
-      name: true,
-      description: true,
-      price: true,
-      discount: true,
-      rating: true,
-      inventory: true,
+    omit: {
+      categoryId: true,
+      typeId: true,
+      createdAt: true,
       updatedAt: true,
-      category: {
-        select: {
-          name: true,
-        },
-      },
-      type: {
-        select: {
-          name: true,
-        },
-      },
-      tags: {
-        select: {
-          name: true,
-        },
-      },
+    },
+    include: {
       images: {
         select: {
+          id: true,
           path: true,
         },
       },

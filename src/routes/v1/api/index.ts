@@ -10,6 +10,6 @@ router.use(profileRouters);
 
 router.use("/posts", postRouters);
 
-// router.use("/products", productRouters);
+router.use("/products", productRouters);
 
 export default router;

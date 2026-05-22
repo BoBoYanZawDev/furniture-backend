@@ -51,6 +51,14 @@ const prisma = new PrismaClient({ adapter }).$extends({
         },
       },
     },
+    image: {
+      path: {
+        needs: { path: true },
+        compute(image) {
+          return "/optimize/" + image.path.split(".")[0] + ".webp";
+        },
+      },
+    },
   },
 });
 

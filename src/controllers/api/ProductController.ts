@@ -2,13 +2,13 @@ import { Request, Response, NextFunction } from "express";
 import { param, query, validationResult } from "express-validator";
 import { errorCode } from "../../../config/errorCode";
 import { createError } from "../../utils/error";
-import { checkUserIfNotExists } from "../../utils/auth";
 import {
   getPostsList,
-  getPostWithRelations,
 } from "../../services/postServices";
 import { getUserById } from "../../services/authServices";
 import { getOrSetCache } from "../../utils/cache";
+import { checkModelIfExist } from "../../utils/check";
+import { getProductWithRelations } from "../../services/productServices";
 
 export interface customRequest extends Request {
   userId?: number;
@@ -16,46 +16,28 @@ export interface customRequest extends Request {
 }
 
 export const getProduct = [
-  param("id", "Post Id is required.").isInt({ gt: 0 }),
+  param("id", "Product Id is required.").isInt({ gt: 0 }),
   async (req: customRequest, res: Response, next: NextFunction) => {
     const errors = validationResult(req).array({ onlyFirstError: true });
     if (errors.length > 0) {
       const error: any = createError(errors[0]?.msg, 400, errorCode.invalid);
       return next(error);
     }
-    const userId = req.userId;
-    const user = await getUserById(userId!);
-    checkUserIfNotExists(user);
 
-    const postId = req.params.id;
-    // const post = await getPostWithRelations(+postId!);
+    const productId = req.params.id;
 
     // cache operation
-    const cacheKey = `posts:${JSON.stringify(postId)}`;
-    const post = await getOrSetCache(
+    const cacheKey = `products:${JSON.stringify(productId)}`;
+    const product = await getOrSetCache(
       cacheKey,
-      async () => await getPostWithRelations(+postId!),
+      async () => await getProductWithRelations(+productId!),
     );
 
-    const modifiedPost = {
-      id: post?.id,
-      title: post?.title,
-      content: post?.content,
-      body: post?.body,
-      image: post?.image,
-      updatedAt: post?.updatedAt,
-      fullName: post?.author?.fullName,
-      category_name: post?.category.name,
-      type_name: post?.type.name,
-      tags:
-        post?.tags && post.tags.length > 0
-          ? post.tags.map((i: any) => i.name)
-          : null,
-    };
+    checkModelIfExist(product);
 
     res.status(200).json({
-      messaage: "Post fetched successfully",
-      post: modifiedPost,
+      messaage: "Product fetched successfully",
+      product,
     });
   },
 ];

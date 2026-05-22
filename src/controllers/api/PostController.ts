@@ -9,6 +9,7 @@ import {
 } from "../../services/postServices";
 import { getUserById } from "../../services/authServices";
 import { getOrSetCache } from "../../utils/cache";
+import { checkModelIfExist } from "../../utils/check";
 
 export interface customRequest extends Request {
   userId?: number;
@@ -37,25 +38,27 @@ export const getPost = [
       async () => await getPostWithRelations(+postId!),
     );
 
-    const modifiedPost = {
-      id: post?.id,
-      title: post?.title,
-      content: post?.content,
-      body: post?.body,
-      image: post?.image,
-      updatedAt: post?.updatedAt,
-      fullName: post?.author?.fullName,
-      category_name: post?.category.name,
-      type_name: post?.type.name,
-      tags:
-        post?.tags && post.tags.length > 0
-          ? post.tags.map((i: any) => i.name)
-          : null,
-    };
+    checkModelIfExist(post);
+    
+    // const modifiedPost = {
+    //   id: post?.id,
+    //   title: post?.title,
+    //   content: post?.content,
+    //   body: post?.body,
+    //   image: post?.image,
+    //   updatedAt: post?.updatedAt,
+    //   fullName: post?.author?.fullName,
+    //   category_name: post?.category.name,
+    //   type_name: post?.type.name,
+    //   tags:
+    //     post?.tags && post.tags.length > 0
+    //       ? post.tags.map((i: any) => i.name)
+    //       : null,
+    // };
 
     res.status(200).json({
       messaage: "Post fetched successfully",
-      post: modifiedPost,
+      post,
     });
   },
 ];
