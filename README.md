@@ -22,3 +22,8 @@ npx prisma migrate dev --name init
 ```bash
 npx prisma generate
 ```
+
+> seed sample data.
+```bash
+npx prisma db seed
+```
