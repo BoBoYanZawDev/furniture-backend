@@ -2,13 +2,12 @@ import { Request, Response, NextFunction } from "express";
 import { param, query, validationResult } from "express-validator";
 import { errorCode } from "../../../config/errorCode";
 import { createError } from "../../utils/error";
-import {
-  getPostsList,
-} from "../../services/postServices";
-import { getUserById } from "../../services/authServices";
 import { getOrSetCache } from "../../utils/cache";
 import { checkModelIfExist } from "../../utils/check";
-import { getProductWithRelations } from "../../services/productServices";
+import {
+  getProductsList,
+  getProductWithRelations,
+} from "../../services/productServices";
 
 export interface customRequest extends Request {
   userId?: number;
@@ -44,9 +43,7 @@ export const getProduct = [
 
 // offest paginations
 export const getProductsByPagination = [
-  query("page", "Page number must be unsigned integer.")
-    .isInt({ gt: 0 })
-    .optional(),
+  query("cursor", "Cursor must be Post ID.").isInt({ gt: 0 }).optional(),
   query("limit", "Limit number must be unsigned integer.")
     .isInt({ gt: 0 })
     .optional(),
@@ -57,122 +54,78 @@ export const getProductsByPagination = [
       return next(error);
     }
 
-    const page = req.query.page || 1;
-    const limit = req.query.limit || 5;
-    // const userId = req.userId;
-    // const user = await getUserById(userId!);
-    // checkUserIfNotExists(user);
-
-    const skip = (+page - 1) * +limit;
-    const options = {
-      skip,
-      take: +limit + 1,
-      select: {
-        id: true,
-        title: true,
-        content: true,
-        body: true,
-        image: true,
-        updatedAt: true,
-        author: {
-          select: {
-            fullName: true,
-          },
-        },
-      },
-      orderBy: {
-        updatedAt: "desc",
-      },
-    };
-
-    // const posts = await getPostsList(options);
-    // cache operation
-    const cacheKey = `posts:${JSON.stringify(req.query)}`;
-    const posts = await getOrSetCache(
-      cacheKey,
-      async () => await getPostsList(options),
-    );
-
-    const hasNextPage = posts.length > +limit;
-
-    let nextPage = null;
-    const previousPage = +page !== 1 ? +page - 1 : null;
-
-    if (hasNextPage) {
-      posts.pop();
-      nextPage = +page + 1;
-    }
-
-    res.status(200).json({
-      message: "Data fetched successfully.",
-      posts,
-      currentPage: page,
-      hasNextPage,
-      nextPage,
-      previousPage,
-    });
-  },
-];
-
-// infinte scroll
-export const getInfiniteProductsByPagination = [
-  query("cursor", "Page number must be unsigned integer.")
-    .isInt({ gt: 0 })
-    .optional(),
-  query("limit", "Limit number must be unsigned integer.")
-    .isInt({ gt: 4 })
-    .optional(),
-  async (req: Request, res: Response, next: NextFunction) => {
-    const errors = validationResult(req).array({ onlyFirstError: true });
-    if (errors.length > 0) {
-      const error: any = createError(errors[0]?.msg, 400, errorCode.invalid);
-      return next(error);
-    }
-
     const lastCursor = req.query.cursor;
     const limit = req.query.limit || 5;
-    // const userId = req.userId;
-    // const user = await getUserById(userId!);
-    // checkUserIfNotExists(user);
+    const category = req.query.category;
+    const type = req.query.type;
+
+    let categories: number[] = [];
+    let types: number[] = [];
+    if (category) {
+      categories = category
+        .toString()
+        .split(",")
+        .map((cat) => Number(cat))
+        .filter((c) => c > 0);
+    }
+
+    if (type) {
+      types = type
+        .toString()
+        .split(",")
+        .map((ty) => Number(ty))
+        .filter((t) => t > 0);
+    }
+
+    const where = {
+      AND: [
+        categories.length > 0 ? { categoryId: { in: categories } } : {},
+        types.length > 0 ? { typeId: { in: types } } : {},
+      ],
+    };
 
     const options = {
-      skip: lastCursor ? 1 : 0,
+      where,
       take: +limit + 1,
+      skip: lastCursor ? 1 : 0,
       cursor: lastCursor ? { id: +lastCursor } : undefined,
       select: {
         id: true,
-        title: true,
-        content: true,
-        body: true,
-        image: true,
-        updatedAt: true,
-        author: {
+        name: true,
+        description: true,
+        price: true,
+        discount: true,
+        status: true,
+        images: {
           select: {
-            fullName: true,
+            id: true,
+            path: true,
           },
+          take: 1, // Limit to the first image
         },
       },
       orderBy: {
-        updatedAt: "desc",
+        id: "desc",
       },
     };
 
-    // const posts = await getPostsList(options);
-    // cache operation
-    const cacheKey = `posts:${JSON.stringify(req.query)}`;
-    const posts = await getOrSetCache(
+    const cacheKey = `products:${JSON.stringify(req.query)}`;
+    const products = await getOrSetCache(
       cacheKey,
-      async () => await getPostsList(options),
+      async () => await getProductsList(options),
     );
-    const hasNextPage = posts.length > +limit;
+    const hasNextPage = products.length > +limit;
 
     if (hasNextPage) {
-      posts.pop();
+      products.pop();
     }
-    const newCursor = posts.length > 0 ? posts[posts.length - 1]?.id : null;
+
+    const newCursor =
+      products.length > 0 ? products[products.length - 1]?.id : null;
+      
     res.status(200).json({
-      message: "Get all infinite post.",
-      posts,
+      message: "Products fetched successfully.",
+      products,
       hasNextPage,
       newCursor,
     });

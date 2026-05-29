@@ -115,7 +115,7 @@ export const auth = (req: customRequest, res: Response, next: NextFunction) => {
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
       });
     req.userId = user.id;
-    next(req);
+    next();
   };
 
   if (!accessToken) {
