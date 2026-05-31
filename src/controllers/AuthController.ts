@@ -413,13 +413,15 @@ export const login = [
         httpOnly: true,
         secure: process.env.NODE_ENV == "production",
         sameSite: process.env.NODE_ENV == "production" ? "none" : "strict",
-        maxAge: 10 * 60 * 1000, // 15 minutes
+        maxAge: 10 * 60 * 1000, // 15 minute
+        path: "/",
       })
       .cookie("refreshToken", refreshToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV == "production",
         sameSite: process.env.NODE_ENV == "production" ? "none" : "strict",
         maxAge: 30 * 24 * 60 * 60 * 1000, // 15 minutes
+        path: "/",
       })
       .status(201)
       .json({
@@ -480,12 +482,14 @@ export const logout = async (
     httpOnly: true,
     secure: process.env.NODE_ENV == "production",
     sameSite: process.env.NODE_ENV == "production" ? "none" : "strict",
+    path: "/",
   });
 
   res.clearCookie("refreshToken", {
     httpOnly: true,
     secure: process.env.NODE_ENV == "production",
     sameSite: process.env.NODE_ENV == "production" ? "none" : "strict",
+    path: "/",
   });
 
   res.status(200).json({ message: "Logout successful,See You Soon." });
@@ -693,7 +697,11 @@ export const resetPassword = [
 
     // otp error count is overlimit
     if (otpRow?.errorCount === 5) {
-      const error: any = createError("This request may be an attack",400, errorCode.attack);
+      const error: any = createError(
+        "This request may be an attack",
+        400,
+        errorCode.attack,
+      );
       return next(error);
     }
 
@@ -702,7 +710,7 @@ export const resetPassword = [
         errorCount: 5,
       };
       await updateOtp(otpRow!.id, otpData);
-      const error: any = createError("Invalid Token",400,errorCode.invalid);
+      const error: any = createError("Invalid Token", 400, errorCode.invalid);
       return next(error);
     }
 
@@ -711,7 +719,8 @@ export const resetPassword = [
     if (isExpired) {
       const error: any = createError(
         "Your request is expired. Please try again.",
-        403,errorCode.requestExpired
+        403,
+        errorCode.requestExpired,
       );
       return next(error);
     }
