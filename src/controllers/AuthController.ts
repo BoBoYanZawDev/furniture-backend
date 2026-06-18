@@ -423,7 +423,7 @@ export const login = [
         maxAge: 30 * 24 * 60 * 60 * 1000, // 15 minutes
         path: "/",
       })
-      .status(201)
+      .status(200)
       .json({
         message: "Successfully Login",
         userId: user!.id,
