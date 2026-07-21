@@ -347,7 +347,8 @@ export const login = [
       return next(error);
     }
 
-    const isMatchPassword = bcrypt.compare(password, user!.password);
+    const isMatchPassword = await bcrypt.compare(password, user!.password);
+    
     if (!isMatchPassword) {
       const lastRequest = new Date(user!.updatedAt).toLocaleDateString();
       const isSameDate = lastRequest == new Date().toLocaleDateString();

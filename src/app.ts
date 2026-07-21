@@ -21,21 +21,35 @@ export const app = express();
 app.set("view engine", "ejs");
 app.set("views", "./src/views");
 
-var whitelist = ["http://example1.com", "http://localhost:5173"];
-var corsOptions = {
-  origin: function (
-    origin: any,
-    callback: (err: Error | null, origin?: any) => void,
-  ) {
-    // Allow requests with no origin ( like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    if (whitelist.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error("Not allowed by CORS"));
+const whitelist = (process.env.CORS_ORIGINS || "")
+  .split(",")
+  .map(origin => origin.trim())
+  .filter(Boolean);
+
+const corsOptions = {
+  origin: (
+    origin: string | undefined,
+    callback: (err: Error | null, allow?: boolean) => void
+  ) => {
+    // Mobile app, Postman, curl
+    if (!origin) {
+      return callback(null, true);
     }
+
+    // Allow all origins
+    if (whitelist.includes("*")) {
+      return callback(null, true);
+    }
+
+    // Allow only whitelist
+    if (whitelist.includes(origin)) {
+      return callback(null, true);
+    }
+
+    return callback(new Error("Not allowed by CORS"));
   },
-  credentials: true, // Allow cookies or authorization header
+
+  credentials: true,
 };
 
 app
