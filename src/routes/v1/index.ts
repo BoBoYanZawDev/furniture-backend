@@ -8,7 +8,7 @@ import { maintenance } from "../../middlewares/maintenance";
 
 export const router = createRouter();
 
-router.use("/api/v1", authRoutes);
+router.use("/api/v1", maintenance, authRoutes);
 router.use("/api/v1/user", maintenance, userRoutes);
 router.use("/api/v1/admin", auth, authorise(true, "ADMIN"), adminRoutes);
 

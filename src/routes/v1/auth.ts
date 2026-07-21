@@ -1,4 +1,5 @@
 import {
+  authCheck,
   confirmPassword,
   forgetPassword,
   login,
@@ -8,6 +9,7 @@ import {
   verifyOtp,
   verifyOTPForPassword,
 } from "../../controllers/AuthController";
+import { auth } from "../../middlewares/auth";
 import { createRouter } from "../createRouter";
 
 export const router = createRouter();
@@ -23,4 +25,5 @@ router.post("/forget-password", forgetPassword);
 router.post("/forget-password/verify", verifyOTPForPassword);
 router.post("/reset-password", resetPassword);
 
+router.get("/auth-check", auth, authCheck);
 export default router;

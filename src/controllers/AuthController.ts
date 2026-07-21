@@ -17,11 +17,11 @@ import {
 } from "../utils/auth";
 import { generateOTP, generateToken } from "../utils/generate";
 import bcrypt from "bcrypt";
-import { error } from "node:console";
 import moment from "moment";
 import jwt from "jsonwebtoken";
 import { errorCode } from "../../config/errorCode";
 import { createError } from "../utils/error";
+import { customRequest } from "../middlewares/auth";
 
 export const register = [
   body("phone")
@@ -348,7 +348,7 @@ export const login = [
     }
 
     const isMatchPassword = await bcrypt.compare(password, user!.password);
-    
+
     if (!isMatchPassword) {
       const lastRequest = new Date(user!.updatedAt).toLocaleDateString();
       const isSameDate = lastRequest == new Date().toLocaleDateString();
@@ -778,3 +778,23 @@ export const resetPassword = [
       });
   },
 ];
+
+//for auth check
+export const authCheck = async (
+  req: customRequest,
+  res: Response,
+  next: NextFunction,
+) => {
+  const userId = req.userId;
+  const user = await getUserById(userId!);
+  checkUserIfNotExists(user);
+
+  res
+    .status(200)
+    .json({
+      message: "You are authenticated",
+      userId: user?.id,
+      userName: user?.fullName,
+      image: user?.image,
+    });
+};
