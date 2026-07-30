@@ -23,13 +23,13 @@ app.set("views", "./src/views");
 
 const whitelist = (process.env.CORS_ORIGINS || "")
   .split(",")
-  .map(origin => origin.trim())
+  .map((origin) => origin.trim())
   .filter(Boolean);
 
 const corsOptions = {
   origin: (
     origin: string | undefined,
-    callback: (err: Error | null, allow?: boolean) => void
+    callback: (err: Error | null, allow?: boolean) => void,
   ) => {
     // Mobile app, Postman, curl
     if (!origin) {
@@ -84,6 +84,11 @@ i18next
 
 app.use(middleware.handle(i18next));
 
+app.use((req, res, next) => {
+  res.setHeader("Cross-Origin-Resource-Policy","same-site");
+  next();
+});
+
 app.use(express.static("public"));
 app.use(express.static("uploads"));
 
@@ -103,7 +108,7 @@ app.use((err: any, req: Request, res: Response, next: NextFunction) => {
     url: req.originalUrl,
     stack: err.stack,
   });
-  
+
   res.status(status).json({
     message,
     error: errCode,
