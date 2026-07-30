@@ -141,7 +141,7 @@ export const getInfinitePostsByPagination = [
     .isInt({ gt: 0 })
     .optional(),
   query("limit", "Limit number must be unsigned integer.")
-    .isInt({ gt: 4 })
+    .isInt({ gt: 2 })
     .optional(),
   async (req: Request, res: Response, next: NextFunction) => {
     const errors = validationResult(req).array({ onlyFirstError: true });
