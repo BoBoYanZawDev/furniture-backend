@@ -55,7 +55,7 @@ const prisma = new PrismaClient({ adapter }).$extends({
       path: {
         needs: { path: true },
         compute(image) {
-          return "/optimize/" + image.path.split(".")[0] + ".webp";
+          return "/optimize_img/" + image.path.split(".")[0] + ".webp";
         },
       },
     },
