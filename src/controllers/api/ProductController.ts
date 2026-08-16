@@ -119,16 +119,18 @@ export const getProductsByPagination = [
     if (hasNextPage) {
       products.pop();
     }
-
+    
     const nextCursor =
-      products.length > 0 ? products[products.length - 1]?.id : null;
-      
+      hasNextPage && products.length > 0
+        ? products[products.length - 1]?.id
+        : null;
+
     res.status(200).json({
       message: "Products fetched successfully.",
       products,
       hasNextPage,
       nextCursor,
-      prevCursor : lastCursor
+      prevCursor: lastCursor,
     });
   },
 ];

@@ -39,7 +39,7 @@ export const getPost = [
     );
 
     checkModelIfExist(post);
-    
+
     // const modifiedPost = {
     //   id: post?.id,
     //   title: post?.title,
@@ -190,13 +190,15 @@ export const getInfinitePostsByPagination = [
     if (hasNextPage) {
       posts.pop();
     }
-    const nextCursor = posts.length > 0 ? posts[posts.length - 1]?.id : null;
+    const nextCursor =
+      hasNextPage && posts.length > 0 ? posts[posts.length - 1]?.id : null;
+      
     res.status(200).json({
       message: "Get all infinite post.",
       posts,
       hasNextPage,
       nextCursor,
-      prevCursor : lastCursor
+      prevCursor: lastCursor,
     });
   },
 ];
