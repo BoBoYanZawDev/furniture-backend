@@ -4,7 +4,7 @@ export const getOrSetCache = async (key: any, cb: any) => {
   try {
     const cachedData = await redis.get(key);
     if (cachedData) {
-      console.log("Cache Hit");
+      // console.log("Cache Hit");
       return JSON.parse(cachedData);
     }
     const freshData = await cb();
