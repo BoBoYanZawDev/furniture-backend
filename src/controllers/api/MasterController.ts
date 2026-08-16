@@ -5,6 +5,9 @@ import { errorCode } from "../../../config/errorCode";
 import { getOrSetCache } from "../../utils/cache";
 import { getCategoryList } from "../../services/categoryServices";
 import { getTypeList } from "../../services/typeServices";
+import { getUserById } from "../../services/authServices";
+import { checkUserIfNotExists } from "../../utils/auth";
+import { customRequest } from "./PostController";
 
 export const getMasterData = [
   query("modelType")
@@ -16,12 +19,16 @@ export const getMasterData = [
       return values.every((item) => allowedTypes.includes(item));
     })
     .withMessage("Invalid model type."),
-  async (req: Request, res: Response, next: NextFunction) => {
+  async (req: customRequest, res: Response, next: NextFunction) => {
     const errors = validationResult(req).array({ onlyFirstError: true });
     if (errors.length > 0) {
       const error: any = createError(errors[0]?.msg, 400, errorCode.invalid);
       return next(error);
     }
+
+    const userId = req.userId;
+    const user = await getUserById(userId!);
+    checkUserIfNotExists(user);
 
     const options = {
       select: {
