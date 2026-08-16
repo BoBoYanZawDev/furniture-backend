@@ -64,11 +64,11 @@ export const getMasterData = [
       ]),
     );
 
-    const masterData = Object.fromEntries(entries);
+    const masterDataList = Object.fromEntries(entries);
 
     res.status(200).json({
       message: "Data fetched successfully.",
-      masterData,
+      masterDataList,
     });
   },
 ];
