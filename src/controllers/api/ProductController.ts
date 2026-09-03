@@ -47,6 +47,9 @@ export const getProductsByPagination = [
   query("limit", "Limit number must be unsigned integer.")
     .isInt({ gt: 0 })
     .optional(),
+  query("notContainProduct", "notContainProduct must be unsigned integer.")
+    .isInt({ gt: 0 })
+    .optional(),
   async (req: customRequest, res: Response, next: NextFunction) => {
     const errors = validationResult(req).array({ onlyFirstError: true });
     if (errors.length > 0) {
@@ -58,6 +61,7 @@ export const getProductsByPagination = [
     const limit = req.query.limit || 5;
     const category = req.query.category;
     const type = req.query.type;
+    const notContainProduct = req.query.notContainProduct;
 
     let categories: number[] = [];
     let types: number[] = [];
@@ -81,6 +85,13 @@ export const getProductsByPagination = [
       AND: [
         categories.length > 0 ? { categoryId: { in: categories } } : {},
         types.length > 0 ? { typeId: { in: types } } : {},
+        notContainProduct
+          ? {
+              id: {
+                not: +notContainProduct,
+              },
+            }
+          : {},
       ],
     };
 
@@ -119,7 +130,7 @@ export const getProductsByPagination = [
     if (hasNextPage) {
       products.pop();
     }
-    
+
     const nextCursor =
       hasNextPage && products.length > 0
         ? products[products.length - 1]?.id

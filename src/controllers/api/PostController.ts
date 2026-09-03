@@ -143,6 +143,9 @@ export const getInfinitePostsByPagination = [
   query("limit", "Limit number must be unsigned integer.")
     .isInt({ gt: 2 })
     .optional(),
+  query("notContainPost", "notContainPost must be unsigned integer.")
+    .isInt({ gt: 0 })
+    .optional(),
   async (req: Request, res: Response, next: NextFunction) => {
     const errors = validationResult(req).array({ onlyFirstError: true });
     if (errors.length > 0) {
@@ -152,6 +155,7 @@ export const getInfinitePostsByPagination = [
 
     const lastCursor = req.query.cursor;
     const limit = req.query.limit || 5;
+    const notContainPost = req.query.notContainPost;
     // const userId = req.userId;
     // const user = await getUserById(userId!);
     // checkUserIfNotExists(user);
@@ -160,6 +164,13 @@ export const getInfinitePostsByPagination = [
       skip: lastCursor ? 1 : 0,
       take: +limit + 1,
       cursor: lastCursor ? { id: +lastCursor } : undefined,
+      where: notContainPost
+        ? {
+            id: {
+              not: +notContainPost,
+            },
+          }
+        : undefined,
       select: {
         id: true,
         title: true,
@@ -192,7 +203,7 @@ export const getInfinitePostsByPagination = [
     }
     const nextCursor =
       hasNextPage && posts.length > 0 ? posts[posts.length - 1]?.id : null;
-      
+
     res.status(200).json({
       message: "Get all infinite post.",
       posts,
