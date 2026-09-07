@@ -18,24 +18,12 @@ import {
 import sanitizeHtml from "sanitize-html";
 import { removeFiles } from "../../utils/helper";
 import cacheQueue from "../../jobs/queues/cacheQueue";
+import { clearPostCache } from "../../utils/cache";
 
 export interface customRequest extends Request {
   userId?: number;
   user?: any;
 }
-
-const clearPostCache = async () => {
-  await cacheQueue.add(
-    "invalidate-post-cache",
-    {
-      pattern: "posts:*",
-    },
-    {
-      jobId: `invalidate-${Date.now()}`,
-      priority: 1,
-    },
-  );
-};
 
 export const createPost = [
   body("title", "Title is required").trim().notEmpty().escape(),

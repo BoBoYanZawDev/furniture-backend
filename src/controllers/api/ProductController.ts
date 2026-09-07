@@ -1,13 +1,19 @@
 import { Request, Response, NextFunction } from "express";
-import { param, query, validationResult } from "express-validator";
+import { body, param, query, validationResult } from "express-validator";
 import { errorCode } from "../../../config/errorCode";
 import { createError } from "../../utils/error";
-import { getOrSetCache } from "../../utils/cache";
+import { clearProductCache, getOrSetCache } from "../../utils/cache";
 import { checkModelIfExist } from "../../utils/check";
 import {
   getProductsList,
   getProductWithRelations,
 } from "../../services/productServices";
+import { getUserById } from "../../services/authServices";
+import { checkUserIfNotExists } from "../../utils/auth";
+import {
+  addProductToFavourite,
+  removeProductToFavourite,
+} from "../../services/userService";
 
 export interface customRequest extends Request {
   userId?: number;
@@ -45,7 +51,7 @@ export const getProduct = [
 export const getProductsByPagination = [
   query("cursor", "Cursor must be Post ID.").isInt({ gt: 0 }).optional(),
   query("limit", "Limit number must be unsigned integer.")
-    .isInt({ gt: 0 })
+    .isInt({ gt: 3 })
     .optional(),
   query("notContainProduct", "notContainProduct must be unsigned integer.")
     .isInt({ gt: 0 })
@@ -142,6 +148,35 @@ export const getProductsByPagination = [
       hasNextPage,
       nextCursor,
       prevCursor: lastCursor,
+    });
+  },
+];
+
+export const toggleFavouriteProduct = [
+  body("productId", "Product Id is required.").isInt({ gt: 0 }),
+  body("favourite", "Favourite is required").isBoolean(),
+  async (req: customRequest, res: Response, next: NextFunction) => {
+    const errors = validationResult(req).array({ onlyFirstError: true });
+    if (errors.length > 0) {
+      const error: any = createError(errors[0]?.msg, 400, errorCode.invalid);
+      return next(error);
+    }
+    const userId = req.userId;
+    const user = await getUserById(userId!);
+    checkUserIfNotExists(user);
+    const productId = req.body.productId;
+    const favourite = req.body.favourite;
+
+    if (favourite) {
+    await  addProductToFavourite(user!.id, Number(productId));
+    } else {
+    await  removeProductToFavourite(user!.id, Number(productId));
+    }
+
+    await clearProductCache();
+
+    res.status(200).json({
+      message: favourite ? "Successfully added to favourite" : "Successfully removed from favourite",
     });
   },
 ];

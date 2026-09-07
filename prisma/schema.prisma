@@ -61,7 +61,7 @@ model User {
   updatedAt       DateTime  @updatedAt
   posts           Post[]
   orders          Order[]
-
+  products        Product[]
   @@map("users")
 }
 
@@ -130,6 +130,7 @@ model Product {
   images      Image[]
   orders      ProductsOnOrders[]
   tags        ProductTag[]
+  users       User[]
 }
 
 model Image {

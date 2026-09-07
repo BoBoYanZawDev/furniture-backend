@@ -12,25 +12,13 @@ import {
 } from "../../services/productServices";
 import { removeManyFiles } from "../../utils/helper";
 import cacheQueue from "../../jobs/queues/cacheQueue";
+import { clearProductCache } from "../../utils/cache";
 
 export interface customRequest extends Request {
   userId?: number;
   user?: any;
   files?: any;
 }
-
-const clearProductCache = async () => {
-  await cacheQueue.add(
-    "invalidate-product-cache",
-    {
-      pattern: "products:*",
-    },
-    {
-      jobId: `invalidate-${Date.now()}`,
-      priority: 1,
-    },
-  );
-};
 
 export const createProduct = [
   body("name", "Name is required").trim().notEmpty().escape(),
@@ -117,6 +105,7 @@ export const createProduct = [
     const product = await createOneProduct(data);
 
     await clearProductCache();
+    
     res.status(201).json({
       message: "Product created successfully.",
       productId: product.id,
