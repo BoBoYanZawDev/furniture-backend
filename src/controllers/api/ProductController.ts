@@ -30,19 +30,25 @@ export const getProduct = [
     }
 
     const productId = req.params.id;
-
+    const userId = req.userId;
+    const user = await getUserById(userId!);
+    checkUserIfNotExists(user);
     // cache operation
     const cacheKey = `products:${JSON.stringify(productId)}`;
     const product = await getOrSetCache(
       cacheKey,
-      async () => await getProductWithRelations(+productId!),
+      async () => await getProductWithRelations(+productId!,userId!),
     );
-
+    
     checkModelIfExist(product);
-
+    const responseData = {
+      ...product,
+      isFavourite: product?.users?.length > 0 ? true : false,
+    };
+    
     res.status(200).json({
       messaage: "Product fetched successfully",
-      product,
+      product: responseData,
     });
   },
 ];
