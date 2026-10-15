@@ -10,5 +10,5 @@ const router = createRouter();
 
 router.get("/", auth, getProductsByPagination); // offset pagination
 router.get("/:id", auth, getProduct);
-router.patch('/toggle-favourite/:id', auth, toggleFavouriteProduct);
+router.patch('/toggle-favourite', auth, toggleFavouriteProduct);
 export default router;
